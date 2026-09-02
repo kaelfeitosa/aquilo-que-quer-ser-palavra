@@ -122,7 +122,8 @@ def paginate(paras):
 # ------------------------------------------------------------------ CSS fixo
 CSS = """
 @page { size: 148mm 210mm; margin: 0; }
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* { margin: 0; padding: 0; box-sizing: border-box;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 body { font-family: Georgia, 'Times New Roman', serif; background: #e9e4da; }
 .page { width: 148mm; height: 210mm; background: #f8f2e6; position: relative;
         overflow: hidden; page-break-after: always; margin: 0 auto 4mm; }
