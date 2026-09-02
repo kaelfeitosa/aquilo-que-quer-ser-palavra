@@ -6,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+import html
 
 import markdown
 from PIL import ImageFont
@@ -132,6 +133,8 @@ body { font-family: Georgia, 'Times New Roman', serif; background: #e9e4da; }
 .title-line.big { font-size: 28pt; line-height: 1.22; }
 .title-line.med { font-size: 22pt; line-height: 1.25; }
 .author-small { text-align: center; font-size: 11pt; }
+.cover-author { text-align: center; font-size: 15pt; font-variant-caps: small-caps;
+                letter-spacing: 0.5pt; color: #94241f; margin-top: 6mm; }
 .rule { border: none; border-top: 1.2pt solid #b3923f; width: 42%; margin: 4mm auto; }
 .rule.short { width: 22%; margin: 2.5mm auto; }
 .heading { text-align: center; font-weight: bold; font-size: 14pt; letter-spacing: 1pt; }
@@ -157,6 +160,14 @@ body { font-family: Georgia, 'Times New Roman', serif; background: #e9e4da; }
 .conto-content p { font-size: 13pt; line-height: 1.65; }
 .content .imgwrap { text-align: center; }
 .orn { display: block; margin: 3mm auto; }
+.ilustrador { display: flex; gap: 6mm; align-items: flex-start; margin-bottom: 8mm; }
+.ilustrador .frame { flex: 0 0 auto; }
+.ilustrador .txt { flex: 1; }
+.ilustrador .nome { font-weight: bold; font-size: 12pt; color: #29201a; }
+.ilustrador .funcao { font-variant-caps: small-caps; letter-spacing: 0.5pt; color: #94241f;
+                      font-size: 10pt; margin: 1mm 0 2mm; }
+.ilustrador .bio { font-size: 10pt; line-height: 1.55; text-align: justify; color: #29201a; }
+.equipe-foto { display: block; margin: 0 auto; }
 """
 
 
@@ -189,30 +200,46 @@ def split_title(titulo):
 
 def page_capa(m):
     t1, t2 = split_title(m.get('titulo', ''))
+    autora = m.get('autora', '')
+    foto = m.get('foto_capa', '')
+    local = m.get('local', '')
+    ano = m.get('ano', '')
     return f"""
 <div class="page cream">
   <div class="band-top"></div><div class="band-bottom"></div>
-  <div class="page-inner">
-    <p class="author-small red" style="margin-top:2mm">{m['autora']}</p>
+  <div class="page-inner" style="display:flex; flex-direction:column">
+    <p class="cover-author">{autora}</p>
     {orn()}
-    <p class="title-line big">{t1}<br>{t2}</p>
+    <p class="title-line big" style="letter-spacing:0.5pt">{t1}<br>{t2}</p>
     <hr class="rule short">
-    <div style="text-align:center; margin:6mm 0">
-      <span class="frame" style="display:inline-block">
-        <span class="frame-inner">
-          <img src="{m['foto_capa']}" style="width:82mm; display:block" alt="capa">
-        </span>
-      </span>
+    <div style="text-align:center; margin:7mm 0">
+      <img src="{foto}" style="width:92mm; display:block; margin:0 auto" alt="capa">
     </div>
+    <div style="flex:1"></div>
     <hr class="rule">
-    <p class="subtitle" style="text-align:center; font-style:italic; color:#6b6157; font-size:10.5pt">{m['local']}</p>
-    <p class="subtitle" style="text-align:center; font-size:9.5pt; margin-top:1mm; color:#6b6157">Projeto editorial</p>
+    <p class="subtitle" style="text-align:center; font-style:italic; color:#6b6157; font-size:10.5pt">{local} &middot; {ano}</p>
   </div>
 </div>"""
 
 
-def page_rosto(m, num):
+def build_creditos(ilustradores, meta):
+    """Créditos de ilustração derivados da seção Ilustradores (fonte única)."""
+    creditos = []
+    for il in ilustradores:
+        creditos.append((il.get('funcao') or 'Ilustrações', il.get('nome', '')))
+    if not creditos and meta.get('capa'):
+        creditos.append(('Capa', meta['capa']))
+    if meta.get('pedagogico'):
+        creditos.append(('Acompanhamento Pedagógico', meta['pedagogico']))
+    return creditos
+
+
+def page_rosto(m, num, creditos):
     t1, t2 = split_title(m.get('titulo', ''))
+    cred_blocos = '\n'.join(
+        f'<p class="body-text center" style="font-size:8.5pt; line-height:1.6; color:#6b6157; margin:0 0 6mm 0">'
+        f'<span class="sc">{html.escape(label)}</span><br>{html.escape(valor)}</p>'
+        for label, valor in creditos)
     return f"""
 <div class="page cream">
   <div class="page-inner" style="display:flex; flex-direction:column">
@@ -222,15 +249,11 @@ def page_rosto(m, num):
     <p class="author-small red" style="font-size:13pt">{m['autora']}</p>
     <p class="subtitle" style="text-align:center; font-style:italic; color:#6b6157; font-size:10.5pt; margin-top:1.5mm">{m['local']}</p>
     <div style="flex:1"></div>
-    <div style="border-top:0.6pt solid #b3923f; padding-top:3mm">
-      <p class="body-text center" style="font-size:8.5pt; line-height:1.6; color:#6b6157; margin:0 0 6mm 0">
-        <span class="sc">Capa</span><br>{m['capa']}
-      </p>
-      <p class="body-text center" style="font-size:8.5pt; line-height:1.6; color:#6b6157; margin:0 0 6mm 0">
-        <span class="sc">Acompanhamento Pedagógico</span><br>{m['pedagogico']}
-      </p>
+    <hr class="rule" style="width:35%; border-top-width:0.8pt">
+    <div style="padding-top:2mm">
+      {cred_blocos}
       <p class="body-text center" style="font-size:8.5pt; color:#6b6157">
-        Projeto editorial &ndash; {m['local']} &middot; {m['ano']}
+        {m['local']} &middot; {m['ano']}
       </p>
     </div>
   </div>
@@ -270,10 +293,11 @@ def page_sobre(bio_html, foto_html):
 </div>"""
 
 
-def page_contracapa(m):
+def page_contracapa(m, creditos):
     t1, t2 = split_title(m.get('titulo', ''))
-    credits = (f'<p style="margin:0 0 6mm 0"><span class="sc">Capa</span><br>{m["capa"]}</p>'
-               f'<p style="margin:0"><span class="sc">Acompanhamento Pedagógico</span><br>{m["pedagogico"]}</p>')
+    cred_html = '\n'.join(
+        f'<p style="margin:0 0 6mm 0"><span class="sc">{html.escape(label)}</span><br>{html.escape(valor)}</p>'
+        for label, valor in creditos)
     return f"""
 <div class="page" style="background:#94241f">
   <div class="page-inner" style="display:flex; flex-direction:column; align-items:center; justify-content:center">
@@ -281,9 +305,104 @@ def page_contracapa(m):
     <hr class="rule">
     <p class="author-small" style="color:#fdf6f2">{m['autora']}</p>
     {orn('#b3923f')}
-    <div class="body-text center" style="color:#f6e7e0; font-size:9.5pt; margin-top:4mm">{credits}</div>
+    <div class="body-text center" style="color:#f6e7e0; font-size:9.5pt; margin-top:4mm">{cred_html}</div>
     <p class="subtitle" style="color:#e9d2c8; font-size:9pt; margin-top:10mm; text-align:center; font-style:italic">{m['local']} &middot; {m['ano']}</p>
   </div>
+</div>"""
+
+
+def split_ilustradores(text):
+    """Seção '## Ilustradores' -> lista de {nome, foto, funcao, bio}."""
+    result, cur = [], None
+    for raw in text.splitlines():
+        s = raw.strip()
+        if s.startswith('### '):
+            if cur:
+                result.append(cur)
+            cur = {'nome': s[4:].strip(), 'foto': '', 'funcao': '', 'bio_parts': []}
+        elif cur is not None:
+            im = re.search(r'!\[[^\]]*\]\(([^)]+)\)', s)
+            if im:
+                cur['foto'] = im.group(1)
+            elif s.startswith('**') and s.endswith('**') and len(s) > 4:
+                cur['funcao'] = s[2:-2]
+            elif s and not s.startswith('#') and not s.startswith('<!--'):
+                cur['bio_parts'].append(s)
+    if cur:
+        result.append(cur)
+    out = []
+    for c in result:
+        out.append({'nome': c['nome'], 'foto': c['foto'],
+                    'funcao': c['funcao'], 'bio': ' '.join(c['bio_parts']).strip()})
+    return out
+
+
+def parse_equipe(text):
+    """Seção '## A equipe' -> {grupo, simbolo, legenda}."""
+    grupo = simbolo = ''
+    legenda_parts = []
+    for raw in text.splitlines():
+        s = raw.strip()
+        im = re.search(r'!\[[^\]]*\]\(([^)]+)\)', s)
+        if im:
+            if not grupo:
+                grupo = im.group(1)
+            elif not simbolo:
+                simbolo = im.group(1)
+        elif s and not s.startswith('#') and not s.startswith('<!--'):
+            legenda_parts.append(s)
+    return {'grupo': grupo, 'simbolo': simbolo, 'legenda': ' '.join(legenda_parts).strip()}
+
+
+def page_ilustradores(ilustradores, num):
+    blocos = []
+    for il in ilustradores:
+        bio = MD_CONV.reset().convert(il['bio']).strip()
+        if bio.startswith('<p>') and bio.endswith('</p>'):
+            bio = '<p class="bio">' + bio[3:]
+        blocos.append(f"""
+<div class="ilustrador">
+  <span class="frame" style="display:inline-block">
+    <img src="{il['foto']}" style="width:34mm; display:block" alt="{html.escape(il['nome'])}">
+  </span>
+  <div class="txt">
+    <p class="nome">{html.escape(il['nome'])}</p>
+    <p class="funcao">{html.escape(il['funcao'])}</p>
+    {bio}
+  </div>
+</div>""")
+    return f"""
+<div class="page cream">
+  <div class="page-inner">
+    <p class="heading red big sc">Ilustradores</p>
+    <hr class="rule" style="width:34%">
+    <div style="margin-top:7mm">{''.join(blocos)}</div>
+  </div>
+  <span class="page-num">&middot; {num} &middot;</span>
+</div>"""
+
+
+def page_equipe(eq, meta, num):
+    legenda = eq.get('legenda') or f"{meta.get('local', '')} \u00b7 {meta.get('ano', '')}"
+    escola = meta.get('escola', '')
+    grupo = ('<span class="frame" style="display:inline-block">'
+             f'<img src="{eq["grupo"]}" class="equipe-foto" style="width:88mm" alt="equipe"></span>') if eq.get('grupo') else ''
+    simbolo = (f'<img src="{eq["simbolo"]}" style="width:32mm; display:inline-block; margin:0 auto" '
+               f'alt="símbolo">') if eq.get('simbolo') else ''
+    escola_html = (f'<p class="subtitle" style="text-align:center; font-size:9pt; color:#6b6157; margin-top:2mm">'
+                   f'{html.escape(escola)}</p>') if escola else ''
+    return f"""
+<div class="page cream">
+  <div class="page-inner" style="display:flex; flex-direction:column; align-items:center">
+    <p class="heading red big sc">A equipe</p>
+    <hr class="rule" style="width:34%">
+    <div style="margin-top:7mm; text-align:center">{grupo}</div>
+    <div style="flex:1"></div>
+    <div style="text-align:center">{simbolo}</div>
+    <p class="subtitle" style="text-align:center; font-style:italic; color:#6b6157; font-size:10.5pt; margin-top:2mm">{html.escape(legenda)}</p>
+    {escola_html}
+  </div>
+  <span class="page-num">&middot; {num} &middot;</span>
 </div>"""
 
 
@@ -294,8 +413,12 @@ def main():
     sections = split_sections(body)
 
     pages = []
+    # ilustradores parseado cedo (fonte única dos créditos)
+    il = split_ilustradores(sections.get('ilustradores', ''))
+    creditos = build_creditos(il, meta)
+
     pages.append(page_capa(meta))                       # 1 capa
-    pages.append(page_rosto(meta, 2))                   # 2 rosto+ficha
+    pages.append(page_rosto(meta, 2, creditos))         # 2 rosto+ficha
 
     # ---- apresentacao (pagina 3 em diante, fluxo automatico)
     apres = sections.get('apresentação', sections.get('apresentacao', ''))
@@ -366,8 +489,18 @@ def main():
         foto_html = '<div class="foto-place" style="height:32mm; margin-top:10mm">espaço para foto</div>'
     pages.append(page_sobre('\n'.join(bio_parts), foto_html).replace('{num}', str(len(pages) + 1)))
 
-    # ---- contracapa (créditos vêm do front matter)
-    pages.append(page_contracapa(meta))
+    # ---- ilustradores
+    if il:
+        pages.append(page_ilustradores(il, len(pages) + 1))
+
+    # ---- a equipe
+    equipe_sec = sections.get('a equipe', sections.get('equipe', ''))
+    eq = parse_equipe(equipe_sec)
+    if eq.get('grupo') or eq.get('simbolo'):
+        pages.append(page_equipe(eq, meta, len(pages) + 1))
+
+    # ---- contracapa
+    pages.append(page_contracapa(meta, creditos))
 
     html_doc = (f'<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">'
                 f'<title>Booklet A5</title><style>{CSS}</style></head><body>'

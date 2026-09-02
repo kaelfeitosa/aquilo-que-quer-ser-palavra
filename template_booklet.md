@@ -3,8 +3,8 @@ titulo: A Flor e o Pássaro Vermelho
 autora: Nome da Autora
 local: Guaramiranga – CE
 ano: 2026
-capa: Nome do Ilustrador(a) da Capa
 pedagogico: Nome do(a) Orientador(a)
+escola: Nome da Escola
 foto_capa: ilustracoes/foto_capa.png
 ---
 
@@ -56,9 +56,7 @@ repente, começou a chover, e a flor ficou toda molhada.
 
 ---
 
-O pássaro demorou um pouquinho, e a flor achou que ele não ia voltar. Mas, depois
-de um tempo, ele voltou! A flor ficou muito feliz, e os dois ficaram juntos e
-felizes para sempre.
+O pássaro demorou um pouquinho, e a flor já estava achando que ele a tinha abandonado de vez. Demorou um tempinho que, para a flor, pareceu uma eternidade. Mas o pássaro voltou para ficar de vez, e a flor ficou tão contente! Dali em diante, eles continuaram juntos e viveram felizes para sempre.
 
 ## Sobre a autora
 
@@ -67,3 +65,27 @@ felizes para sempre.
 Meu nome é Nome da Autora, tenho 12 anos e moro em Guaramiranga, no sítio Monte
 Flor. No dia a dia, ajudo minha mãe em casa e também minha tia a cuidar da minha
 prima, que é bebê. Eu gosto de brincar de comidinha e também adoro ler.
+
+## Ilustradores
+
+### Nome do Ilustrador(a) da Capa
+
+![ilustração](ilustracoes/placeholder.png)
+
+**Ilustrações da capa**
+
+Meu nome é Nome do Ilustrador(a) da Capa, tenho 14 anos e estudo na Nome da Escola. Trabalho como garçom e, no meu tempo livre, gosto de jogar videogame e torcer pelo time de basquete RISE.
+
+### Nome do Ilustrador(a) do Conto
+
+![ilustração](ilustracoes/placeholder.png)
+
+**Ilustrações do conto**
+
+Meu nome é Nome do Ilustrador(a) do Conto, tenho 11 anos e gosto muito de desenhar e praticar esportes. Treino vôlei em Pernambuquinho e jogo futsal em Guaramiranga. Sou a irmã mais velha e tenho duas irmãs: a I., de 9 anos, e a M., de 6. Adoro ensinar a elas tudo o que aprendo.
+
+## A equipe
+
+![ilustração](ilustracoes/placeholder.png)
+
+![ilustração](ilustracoes/guaramirangua.png)
