@@ -5,7 +5,7 @@ Livrinho A5 com diagramação **fixa** (cores, fontes, posições). Você só ed
 
 ## Editor visual (recomendado)
 
-Abra **`booklet_editor.html`** no navegador (Edge/Chrome):
+Abra **`index.html`** no navegador (Edge/Chrome):
 
 - Edite ficha, apresentação, conto (adicione/remova páginas) e sobre a autora
 - Preview das páginas A5 em tempo real
@@ -48,7 +48,7 @@ Abra **`booklet_editor.html`** no navegador (Edge/Chrome):
 
 ```
 booklet_A5_projeto/
-├── booklet_editor.html   <- EDITOR VISUAL (abra no navegador)
+├── index.html            <- EDITOR VISUAL (abra no navegador)
 ├── template_booklet.md   <- EDITAR AQUI (fluxo markdown)
 ├── gerar_booklet.py      <- fixo (gerador)
 ├── booklet_A5.pdf        <- resultado

@@ -108,8 +108,8 @@ def main():
     print('Servidor local do Booklet A5 ativo.')
     print()
     for ip in ips or ['SEU_IP']:
-        print(f'  HTTP :  http://{ip}:{HTTP_PORT}/booklet_editor.html')
-        print(f'  HTTPS:  https://{ip}:{HTTPS_PORT}/booklet_editor.html')
+        print(f'  HTTP :  http://{ip}:{HTTP_PORT}/')
+        print(f'  HTTPS:  https://{ip}:{HTTPS_PORT}/')
     print()
     print('HTTPS usa certificado autoassinado: o navegador avisa -> "Avançar/Continuar".')
     print('O histórico/IndexedDB só funciona em HTTPS (ou localhost).')
