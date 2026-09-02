@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Editor de Booklet A5</title>
+<style>
+/* ============ LAYOUT FIXO DO LIVRO (igual ao gerar_booklet.py) ============ */
+@page { size: 148mm 210mm; margin: 0; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: Georgia, 'Times New Roman', serif; }
+
+.page { width: 148mm; height: 210mm; background: #f8f2e6; position: relative;
+        overflow: hidden; page-break-after: always; }
+.page-inner { padding: 14mm 18mm 16mm; height: 100%; }
+.ink { color: #29201a; } .red { color: #94241f; }
+.gold { color: #b3923f; }
+.title-line { text-align: center; font-weight: bold; color: #29201a; }
+.title-line.big { font-size: 28pt; line-height: 1.22; }
+.title-line.med { font-size: 22pt; line-height: 1.25; }
+.author-small { text-align: center; font-size: 11pt; }
+.cover-author { text-align: center; font-size: 15pt; font-variant-caps: small-caps;
+                letter-spacing: 0.5pt; color: #94241f; margin-top: 6mm; }
+.rule { border: none; border-top: 1.2pt solid #b3923f; width: 42%; margin: 4mm auto; }
+.rule.short { width: 22%; margin: 2.5mm auto; }
+.heading { text-align: center; font-weight: bold; font-size: 14pt; letter-spacing: 1pt; }
+.heading.big { font-size: 16pt; }
+.sc { font-variant-caps: small-caps; }
+.body-text { font-size: 11pt; line-height: 1.6; text-align: justify; orphans: 3; widows: 3; }
+.body-text.center { text-align: center; }
+.dropcap::first-letter { initial-letter: 2; color: #94241f; font-weight: bold; margin-right: 2mm; }
+.signature { text-align: center; font-style: italic; font-size: 12pt; }
+.page-num { position: absolute; bottom: 6mm; width: 100%; text-align: center;
+            font-style: italic; font-size: 8.5pt; color: #8a7f80; letter-spacing: 2pt; }
+.frame { border: 1.5pt solid #b3923f; padding: 2mm; }
+.frame-inner { display: block; border: 0.6pt solid #b3923f; padding: 1.5mm; }
+.foto-place { border: 1.5pt solid #b3923f; color: #9a8f80; font-style: italic;
+              display: flex; align-items: center; justify-content: center; }
+.band-top { position: absolute; top: 0; left: 0; width: 100%; height: 3mm; background: #94241f; }
+.band-bottom { position: absolute; bottom: 0; left: 0; width: 100%; height: 3mm; background: #94241f; }
+.content img { max-width: 95mm; display: block; margin: 0 auto; }
+.content p { font-size: 11pt; line-height: 1.6; text-align: justify; margin: 0 0 4.5mm 0; orphans: 3; widows: 3; }
+.content .heading { text-align: center; }
+.conto-content p { font-size: 13pt; line-height: 1.65; }
+.content .imgwrap { text-align: center; }
+.orn { display: block; margin: 3mm auto; }
+.ilustrador { display: flex; gap: 6mm; align-items: flex-start; margin-bottom: 8mm; }
+.ilustrador .frame { flex: 0 0 auto; }
+.ilustrador .txt { flex: 1; }
+.ilustrador .nome { font-weight: bold; font-size: 12pt; color: #29201a; }
+.ilustrador .funcao { font-variant-caps: small-caps; letter-spacing: 0.5pt; color: #94241f;
+                      font-size: 10pt; margin: 1mm 0 2mm; }
+.ilustrador .bio { font-size: 10pt; line-height: 1.55; text-align: justify; color: #29201a; }
+.equipe-foto { display: block; margin: 0 auto; }
+
+/* ============ APP / FORM (somente tela) ============ */
+:root {
+  --red: #94241f;
+  --cream: #f8f2e6;
+  --gold: #b3923f;
+  --ink: #29201a;
+  --bg: #e9e4da;
+}
+body.app { background: var(--bg); }
+.app { min-height: 100vh; display: flex; flex-direction: column; font-family: Georgia, serif; }
+.main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+
+/* Toolbar fixa no topo */
+.toolbar { position: sticky; top: 0; z-index: 50; background: #fff; border-bottom: 1px solid #ddd;
+           padding: 8px 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.toolbar .brand { font-size: 13pt; font-weight: bold; color: var(--red); margin-right: auto; }
+.toolbar .count-badge { font-size: 9pt; color: #666; background: #f3f0ea; border-radius: 12px; padding: 4px 10px; }
+.toolbar .act { font-size: 10pt; padding: 9px 12px; border-radius: 8px; border: 1px solid var(--gold);
+                background: #fbf4e3; color: #6b4d16; cursor: pointer; min-height: 40px; font-family: Georgia, serif; }
+.toolbar .act.primary { background: var(--red); color: #fff; border-color: var(--red); }
+.toolbar .act:hover { filter: brightness(0.95); }
+.toolbar details { position: relative; }
+.toolbar details .menu { position: absolute; right: 0; top: calc(100% + 6px); background: #fff; border: 1px solid #ddd;
+                         border-radius: 8px; box-shadow: 0 4px 14px rgba(0,0,0,.15); padding: 8px; display: flex;
+                         flex-direction: column; gap: 6px; min-width: 180px; }
+.toolbar details .menu .act { width: 100%; }
+
+/* Tabs (mobile) */
+.tabs { display: flex; background: #fff; border-bottom: 1px solid #ddd; position: sticky; top: 0; z-index: 49; }
+.tabs button { flex: 1; padding: 13px; font-size: 11pt; border: none; background: transparent;
+               color: #777; border-bottom: 3px solid transparent; cursor: pointer; font-family: Georgia, serif; }
+.tabs button.active { color: var(--red); border-bottom-color: var(--red); font-weight: bold; }
+
+/* Panes */
+.pane { display: none; }
+.pane.active { display: block; }
+
+.panel { background: var(--bg); padding: 12px; overflow-y: auto; }
+.card { background: #fff; border-radius: 10px; padding: 12px; margin-bottom: 12px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.card h2 { font-size: 11.5pt; color: var(--red); margin-bottom: 8px; display: flex;
+           align-items: center; justify-content: space-between; }
+.panel label { display: block; font-size: 9.5pt; color: #555; margin: 9px 0 3px; }
+.panel input[type=text], .panel textarea { width: 100%; font-family: Georgia, serif; font-size: 11pt;
+    padding: 10px; border: 1px solid #ccc; border-radius: 8px; background: #fff; }
+.panel textarea { min-height: 70px; resize: vertical; }
+.panel input:focus, .panel textarea:focus { outline: 2px solid var(--gold); border-color: var(--gold); }
+.panel .img-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.panel .thumb { width: 56px; height: 42px; object-fit: cover; border: 1px solid #ccc; border-radius: 6px; background: #f3f3f3; }
+.panel button { font-family: Georgia, serif; font-size: 10pt; padding: 9px 12px; border-radius: 8px;
+    border: 1px solid var(--gold); background: #fbf4e3; color: #6b4d16; cursor: pointer; min-height: 40px; }
+.panel button:hover { background: #f3e6c5; }
+.panel button.primary { background: var(--red); color: #fff; border-color: var(--red); }
+.panel button.danger { border-color: #b00; background: #fff; color: #b00; }
+.panel .btns { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.part { border: 1px solid #e2d6c2; background: #fdfaf3; padding: 10px; margin-bottom: 10px; border-radius: 10px; }
+.part-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.part-head h3 { font-size: 10.5pt; color: var(--red); }
+.part-actions { display: flex; gap: 4px; }
+.part-actions button { min-height: 32px; padding: 4px 8px; }
+.hist-item { border: 1px solid #eee; border-radius: 8px; padding: 8px; margin-bottom: 8px; background: #fafafa; }
+.hist-item .nm { font-size: 10.5pt; font-weight: bold; }
+.hist-item .dt { font-size: 8.5pt; color: #888; }
+.hist-item .hb { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
+.preview { flex: 1; overflow-y: auto; padding: 14px; background: var(--bg); }
+.preview-inner { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.page-block { display: flex; flex-direction: column; align-items: center; }
+.page-scaled { overflow: hidden; }
+.preview .page { box-shadow: 0 2px 10px rgba(0,0,0,.22); margin: 0; }
+.page-label { font-size: 9pt; color: #8a7f72; font-style: italic; margin-top: 6px; text-align: center; }
+.hint { font-size: 9pt; color: #777; }
+.count { font-size: 9pt; color: #555; margin-bottom: 6px; text-align: center; }
+
+/* Desktop: sidebar + preview com scroll independente */
+@media (min-width: 900px) {
+  .main { flex-direction: row; height: calc(100vh - 57px); }
+  .tabs { display: none; }
+  .pane { display: block !important; }
+  .panel { flex: 0 0 400px; border-right: 1px solid #ddd; height: 100%; overflow-y: auto; }
+  .preview { flex: 1; height: 100%; }
+}
+
+/* ============ IMPRESSÃO ============ */
+@media print {
+  body { background: #fff; }
+  .toolbar, .tabs { display: none !important; }
+  .panel { display: none !important; }
+  .preview { padding: 0; display: block; overflow: visible; }
+  .preview-inner { gap: 0; display: block; }
+  .page-block { display: block; }
+  .page-label { display: none; }
+  .page-scaled { width: auto !important; height: auto !important; overflow: visible; }
+  .preview .page { box-shadow: none; margin: 0; transform: none !important; width: 148mm; height: 210mm; }
+  .count { display: none; }
+}
+</style>
+</head>
+<body class="app">
+<div class="app">
+  <div class="toolbar">
+    <span class="brand">Booklet A5</span>
+    <span class="count-badge" id="page_count">…</span>
+    <button type="button" class="act primary" id="btn_print">Imprimir / PDF</button>
+    <button type="button" class="act" id="btn_save">Salvar</button>
+    <button type="button" class="act" id="add_part">+ Página</button>
+    <details>
+      <summary class="act">Mais</summary>
+      <div class="menu">
+        <button type="button" class="act" id="btn_md">Exportar .md</button>
+        <button type="button" class="act" id="btn_imp_md">Importar .md</button>
+        <button type="button" class="act" id="btn_reset">Reset exemplo</button>
+        <input type="file" id="imp_md" accept=".md,text/markdown" style="display:none">
+      </div>
+    </details>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <button data-tab="edit" class="active">Editar</button>
+    <button data-tab="view">Ver</button>
+  </div>
+
+  <div class="main">
+  <aside class="panel pane active" id="panel">
+    <div class="card">
+      <h2>Ficha</h2>
+      <label>Título</label><input type="text" id="f_titulo">
+      <label>Autora / Autor</label><input type="text" id="f_autora">
+      <label>Local</label><input type="text" id="f_local">
+      <label>Ano</label><input type="text" id="f_ano">
+      <label>Acompanhamento Pedagógico</label><input type="text" id="f_pedagogico">
+      <label>Escola</label><input type="text" id="f_escola">
+      <label>Foto da capa</label>
+      <div class="img-row">
+        <img class="thumb" id="t_capa" alt="">
+        <input type="file" id="up_capa" accept="image/*">
+        <button type="button" id="r_capa">Padrão</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Apresentação</h2>
+      <label>Título da apresentação</label><input type="text" id="a_heading">
+      <label>Texto (parágrafos separados por linha em branco)</label>
+      <textarea id="a_paras" style="min-height:120px"></textarea>
+    </div>
+
+    <div class="card">
+      <h2>Conto</h2>
+      <div id="conto_list"></div>
+      <button type="button" class="primary" id="add_part_card">+ Adicionar página</button>
+    </div>
+
+    <div class="card">
+      <h2>Sobre a autora</h2>
+      <label>Bio</label>
+      <textarea id="s_bio" style="min-height:80px"></textarea>
+      <label>Foto</label>
+      <div class="img-row">
+        <img class="thumb" id="t_foto" alt="">
+        <input type="file" id="up_foto" accept="image/*">
+        <button type="button" id="r_foto">Padrão</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Ilustradores</h2>
+      <div id="ilust_list"></div>
+      <button type="button" class="primary" id="add_ilust">+ Adicionar ilustrador</button>
+    </div>
+
+    <div class="card">
+      <h2>A equipe</h2>
+      <label>Foto de todos</label>
+      <div class="img-row">
+        <img class="thumb" id="t_grupo" alt="">
+        <input type="file" id="up_grupo" accept="image/*">
+        <button type="button" id="r_grupo">Padrão</button>
+      </div>
+      <label>Símbolo de Guaramiranga</label>
+      <div class="img-row">
+        <img class="thumb" id="t_simbolo" alt="">
+        <input type="file" id="up_simbolo" accept="image/*">
+        <button type="button" id="r_simbolo">Padrão</button>
+      </div>
+      <label>Legenda (opcional)</label>
+      <input type="text" id="e_legenda">
+    </div>
+
+    <div class="card">
+      <h2>Histórico (navegador)</h2>
+      <div id="history"></div>
+    </div>
+  </aside>
+
+  <main class="preview pane" id="preview">
+    <div class="preview-inner" id="preview-inner">
+      <div id="pages"></div>
+    </div>
+  </main>
+</div>
+</div>
+
+<script>
+'use strict';
+/* ============================================================
+   ESTADO
+   ============================================================ */
+const DEFAULT_IMAGE_CAPA = 'ilustracoes/foto_capa.png';
+const DEFAULT_IMAGE_CONTO = 'ilustracoes/foto_historia.png';
+const DEFAULT_IMAGE_FOTO = 'ilustracoes/placeholder.png';
+
+function exampleState() {
+  return {
+    meta: {
+      titulo: 'A Flor e o Pássaro Vermelho',
+      autora: 'Nome da Autora',
+      local: 'Guaramiranga – CE',
+      ano: '2026',
+      pedagogico: 'Nome do(a) Orientador(a)',
+      escola: 'Nome da Escola',
+      foto_capa: DEFAULT_IMAGE_CAPA
+    },
+    apresentacao: {
+      heading: 'Aquilo que quer ser palavra',
+      paras: 'Este livro nasceu de uma provocação: o que, dentro de nós, quer virar palavra?\nEm meio a tantas respostas prontas e histórias já contadas, convidei os estudantes\na olhar para o próprio universo e reconhecer a riqueza que já carregam: as histórias\nque ouviram, as experiências que viveram, as memórias, os lugares, as pessoas e as\nmuitas referências que fazem parte de suas vidas. Para esta primeira edição, não\npoderia deixar de olhar para o lugar que nos atravessa: Guaramiranga. Seu nome,\nassociado ao significado de pássaro vermelho, tornou-se o ponto de partida para uma\nexperiência de imaginação, criação e pertencimento. Que pássaro vermelho é esse?\nDe onde veio? Que histórias ele conhece? O que poderia ter acontecido para que ele\nchegasse até aqui? A partir dessas perguntas, convidei os estudantes a inventar,\nficcionalizar e folclorizar a cidade, criando histórias que misturam memória,\nimaginação e território.\n\nEste livro é, portanto, um exercício de autoria. Um encontro entre aquilo que\nvivemos, aquilo que ouvimos e aquilo que ainda somos capazes de imaginar. Aqui\nestão histórias que, de algum modo, já existiam dentro de nós e encontraram um\ncaminho para nascer.'
+    },
+    conto: [
+      { text: 'Era uma vez uma flor que era muito solitária, até que, um belo dia, um pássaro apareceu.', image: DEFAULT_IMAGE_CONTO },
+      { text: 'O pássaro se aproximou da flor e percebeu que ela estava triste. Então, perguntou o que havia acontecido, e ela respondeu que se sentia muito sozinha.', image: '' },
+      { text: 'Ele perguntou se ela gostaria de ter companhia, e ela aceitou. Os dois começaram a conversar sobre a vida e ficaram ali, trocando histórias até o anoitecer.', image: '' },
+      { text: 'Quando ficou bem tarde, os dois foram dormir. No dia seguinte, o pássaro saiu para procurar comida para eles, enquanto a flor ficou esperando por ele. De repente, começou a chover, e a flor ficou toda molhada.', image: '' },
+      { text: 'O pássaro demorou um pouquinho, e a flor achou que ele não ia voltar. Mas, depois de um tempo, ele voltou! A flor ficou muito feliz, e os dois ficaram juntos e felizes para sempre.', image: '' }
+    ],
+    sobre: {
+      bio: 'Meu nome é Nome da Autora, tenho 12 anos e moro em Guaramiranga, no sítio sua cidade. No dia a dia, ajudo minha mãe em casa e também minha tia a cuidar da minha prima, que é bebê. Eu gosto de brincar de comidinha e também adoro ler.',
+      foto: DEFAULT_IMAGE_FOTO
+    },
+    ilustradores: [
+      { nome: 'Nome do Ilustrador(a) da Capa', funcao: 'Ilustrações da capa', foto: 'ilustracoes/placeholder.png',
+        bio: 'Meu nome é Nome do Ilustrador(a) da Capa, tenho 14 anos e estudo na Nome da Escola. Trabalho como garçom e, no meu tempo livre, gosto de jogar videogame e torcer pelo time de basquete RISE.' },
+      { nome: 'Nome do Ilustrador(a) do Conto', funcao: 'Ilustrações do conto', foto: 'ilustracoes/placeholder.png',
+        bio: 'Meu nome é Nome do Ilustrador(a) do Conto, tenho 11 anos e gosto muito de desenhar e praticar esportes. Treino vôlei em Pernambuquinho e jogo futsal em Guaramiranga. Sou a irmã mais velha e tenho duas irmãs: a I., de 9 anos, e a M., de 6. Adoro ensinar a elas tudo o que aprendo.' }
+    ],
+    equipe: {
+      grupo: 'ilustracoes/placeholder.png',
+      simbolo: 'ilustracoes/guaramirangua.png',
+      legenda: ''
+    }
+  };
+}
+
+let state = exampleState();
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+function esc(s) {
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+function mdInline(s) {
+  s = esc(s);
+  s = s.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  s = s.replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
+  return s;
+}
+function orn(color) {
+  color = color || '#b3923f';
+  return '<svg class="orn" width="30mm" height="5mm" viewBox="0 0 120 20">' +
+    '<line x1="4" y1="10" x2="46" y2="10" stroke="' + color + '" stroke-width="1.2"/>' +
+    '<circle cx="60" cy="10" r="2.4" fill="' + color + '"/>' +
+    '<line x1="74" y1="10" x2="116" y2="10" stroke="' + color + '" stroke-width="1.2"/></svg>';
+}
+function splitTitle(t) {
+  const words = String(t || '').split(/\s+/).filter(Boolean);
+  if (!words.length) return ['', ''];
+  if (words.length === 1) return [words[0], ''];
+  let best = 1, bestCost = Infinity;
+  for (let k = 1; k < words.length; k++) {
+    const cost = Math.abs(words.slice(0, k).join(' ').length - words.slice(k).join(' ').length);
+    if (cost < bestCost) { bestCost = cost; best = k; }
+  }
+  return [words.slice(0, best).join(' '), words.slice(best).join(' ')];
+}
+function paragraphs(text) {
+  return String(text || '').split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+}
+
+/* ============================================================
+   MEDIÇÃO (paginação da apresentação)
+   ============================================================ */
+const _ctx = document.createElement('canvas').getContext('2d');
+function measureLines(text, sizePt) {
+  _ctx.font = sizePt + 'pt Georgia, serif';
+  const cw = 112 * 3.7795;
+  const words = text.split(/\s+/);
+  let lines = 1, cur = '';
+  for (const w of words) {
+    const trial = cur ? cur + ' ' + w : w;
+    if (_ctx.measureText(trial).width <= cw) cur = trial;
+    else { lines++; cur = w; }
+  }
+  return lines;
+}
+function paraHeight(text, sizePt) {
+  return measureLines(text, sizePt) * sizePt * 1.6 + sizePt * 0.6;
+}
+function paginate(items) {
+  const pages = [[]];
+  let curH = 0, avail = 505;
+  for (const it of items) {
+    const h = paraHeight(it.text, it.size);
+    if (curH + h > avail) { pages.push([]); curH = 0; avail = 505; }
+    pages[pages.length - 1].push(it.html);
+    curH += h;
+  }
+  return pages;
+}
+
+/* ============================================================
+   LAYOUT DAS PÁGINAS
+   ============================================================ */
+function pageCapa() {
+  const m = state.meta, t = splitTitle(m.titulo);
+  return `<div class="page cream">
+  <div class="band-top"></div><div class="band-bottom"></div>
+  <div class="page-inner" style="display:flex; flex-direction:column">
+    <p class="cover-author">${esc(m.autora)}</p>
+    ${orn()}
+    <p class="title-line big" style="letter-spacing:0.5pt">${esc(t[0])}<br>${esc(t[1])}</p>
+    <hr class="rule short">
+    <div style="text-align:center; margin:7mm 0">
+      <img src="${m.foto_capa}" style="width:92mm; display:block; margin:0 auto" alt="capa">
+    </div>
+    <div style="flex:1"></div>
+    <hr class="rule">
+    <p class="subtitle" style="text-align:center; font-style:italic; color:#6b6157; font-size:10.5pt">${esc(m.local)} &middot; ${esc(m.ano)}</p>
+  </div>
+</div>`;
+}
+
+function creditosList() {
+  const out = [];
+  if (state.ilustradores && state.ilustradores.length) {
+    state.ilustradores.forEach(il => out.push({ label: il.funcao || 'Ilustrações', value: il.nome }));
+  } else if (state.meta.capa) {
+    out.push({ label: 'Capa', value: state.meta.capa });
+  }
+  if (state.meta.pedagogico) out.push({ label: 'Acompanhamento Pedagógico', value: state.meta.pedagogico });
+  return out;
+}
+
+function pageRosto(num) {
+  const m = state.meta, t = splitTitle(m.titulo);
+  const cred = creditosList().map(c =>
+    '<p class="body-text center" style="font-size:8.5pt; line-height:1.6; color:#6b6157; margin:0 0 6mm 0">' +
+    '<span class="sc">' + esc(c.label) + '</span><br>' + esc(c.value) + '</p>'
+  ).join('');
+  return `<div class="page cream">
+  <div class="page-inner" style="display:flex; flex-direction:column">
+    <div style="flex:1"></div>
+    <p class="title-line med">${esc(t[0])}<br>${esc(t[1])}</p>
+    <hr class="rule">
+    <p class="author-small red" style="font-size:13pt">${esc(m.autora)}</p>
+    <p class="subtitle" style="text-align:center; font-style:italic; color:#6b6157; font-size:10.5pt; margin-top:1.5mm">${esc(m.local)}</p>
+    <div style="flex:1"></div>
+    <hr class="rule" style="width:35%; border-top-width:0.8pt">
+    <div style="padding-top:2mm">
+      ${cred}
+      <p class="body-text center" style="font-size:8.5pt; color:#6b6157">
+        ${esc(m.local)} &middot; ${esc(m.ano)}
+      </p>
+    </div>
+  </div>
+  <span class="page-num">&middot; ${num} &middot;</span>
+</div>`;
+}
+
+function pageApresentacao(contentHtml, num) {
+  return `<div class="page cream">
+  <div class="page-inner"><div class="content">${contentHtml}</div></div>
+  <span class="page-num">&middot; ${num} &middot;</span>
+</div>`;
+}
+
+function buildApresentacao() {
+  const a = state.apresentacao, m = state.meta;
+  const items = paragraphs(a.paras).map(p => ({ html: '<p>' + mdInline(p) + '</p>', text: p, size: 11 }));
+  if (m.pedagogico) {
+    items.push({ html: '<p class="signature red">' + esc(m.pedagogico) + '</p>', text: m.pedagogico, size: 12 });
+  }
+  const pgs = paginate(items);
+  return pgs.map((blocks, i) => {
+    if (i === 0 && a.heading) {
+      blocks = [orn(), '<p class="heading red sc">' + esc(a.heading) + '</p>\n<hr class="rule" style="width:30%">'].concat(blocks);
+    }
+    return pageApresentacao(blocks.join('\n'), 3 + i);
+  });
+}
+
+function pageConto(part, num, dropcap) {
+  let body = '';
+  paragraphs(part.text).forEach((p, i) => {
+    body += i === 0 && dropcap ? '<p class="dropcap">' + mdInline(p) + '</p>' : '<p>' + mdInline(p) + '</p>';
+  });
+  if (part.image) body += '<div class="imgwrap"><img src="' + part.image + '" alt="ilustração"></div>';
+  return `<div class="page cream">
+  <div class="page-inner" style="display:flex; flex-direction:column; justify-content:center">
+    <div class="content conto-content" style="width:100%">${body}</div>
+  </div>
+  <span class="page-num">&middot; ${num} &middot;</span>
+</div>`;
+}
+
+function pageSobre(num) {
+  const s = state.sobre;
+  const foto = s.foto
+    ? '<div style="text-align:center; margin-top:8mm"><span class="frame" style="display:inline-block"><img src="' + s.foto + '" style="width:70mm; display:block" alt="foto"></span></div>'
+    : '<div class="foto-place" style="height:32mm; margin-top:10mm">espaço para foto</div>';
+  const bio = paragraphs(s.bio).map(p => '<p>' + mdInline(p) + '</p>').join('');
+  return `<div class="page cream">
+  <div class="page-inner">
+    <p class="heading red big sc">Sobre a autora</p>
+    <hr class="rule" style="width:34%">
+    ${foto}
+    <div class="content" style="margin-top:6mm">${bio}</div>
+  </div>
+  <span class="page-num">&middot; ${num} &middot;</span>
+</div>`;
+}
+
+function pageContracapa() {
+  const m = state.meta, t = splitTitle(m.titulo);
+  const cred = creditosList().map(c =>
+    '<p style="margin:0 0 6mm 0"><span class="sc">' + esc(c.label) + '</span><br>' + esc(c.value) + '</p>'
+  ).join('');
+  return `<div class="page" style="background:#94241f">
+  <div class="page-inner" style="display:flex; flex-direction:column; align-items:center; justify-content:center">
+    <p class="title-line" style="font-size:20pt; color:#ffffff">${esc(t[0])}<br>${esc(t[1])}</p>
+    <hr class="rule">
+    <p class="author-small" style="color:#fdf6f2">${esc(m.autora)}</p>
+    ${orn()}
+    <div class="body-text center" style="color:#f6e7e0; font-size:9.5pt; margin-top:4mm">${cred}</div>
+    <p class="subtitle" style="color:#e9d2c8; font-size:9pt; margin-top:10mm; text-align:center; font-style:italic">${esc(m.local)} &middot; ${esc(m.ano)}</p>
+  </div>
+</div>`;
+}
+
+function pageIlustradores(num) {
+  let blocos = '';
+  (state.ilustradores || []).forEach(x => {
+    const bio = paragraphs(x.bio).map(p => '<p class="bio">' + mdInline(p) + '</p>').join('');
+    blocos += `<div class="ilustrador">
+      <span class="frame" style="display:inline-block"><img src="${x.foto}" style="width:34mm; display:block" alt="${esc(x.nome)}"></span>
+      <div class="txt">
+        <p class="nome">${esc(x.nome)}</p>
+        <p class="funcao">${esc(x.funcao)}</p>
+        ${bio}
+      </div>
+    </div>`;
+  });
+  return `<div class="page cream">
+  <div class="page-inner">
+    <p class="heading red big sc">Ilustradores</p>
+    <hr class="rule" style="width:34%">
+    <div style="margin-top:7mm">${blocos}</div>
+  </div>
+  <span class="page-num">&middot; ${num} &middot;</span>
+</div>`;
+}
+
+function pageEquipe(num) {
+  const eq = state.equipe || {}, m = state.meta;
+  const legenda = eq.legenda || (m.local + ' · ' + m.ano);
+  const grupo = eq.grupo ? '<span class="frame" style="display:inline-block"><img src="' + eq.grupo + '" class="equipe-foto" style="width:88mm" alt="equipe"></span>' : '';
+  const simbolo = eq.simbolo ? '<img src="' + eq.simbolo + '" style="width:32mm; display:inline-block; margin:0 auto" alt="símbolo">' : '';
+  const escola = m.escola ? '<p class="subtitle" style="text-align:center; font-size:9pt; color:#6b6157; margin-top:2mm">' + esc(m.escola) + '</p>' : '';
+  return `<div class="page cream">
+  <div class="page-inner" style="display:flex; flex-direction:column; align-items:center">
+    <p class="heading red big sc">A equipe</p>
+    <hr class="rule" style="width:34%">
+    <div style="margin-top:7mm; text-align:center">${grupo}</div>
+    <div style="flex:1"></div>
+    <div style="text-align:center">${simbolo}</div>
+    <p class="subtitle" style="text-align:center; font-style:italic; color:#6b6157; font-size:10.5pt; margin-top:2mm">${esc(legenda)}</p>
+    ${escola}
+  </div>
+  <span class="page-num">&middot; ${num} &middot;</span>
+</div>`;
+}
+
+function render() {
+  const pages = [], nums = [];
+  const push = (html, num) => { pages.push(html); nums.push(num); };
+  push(pageCapa(), null);
+  push(pageRosto(2), 2);
+  const ap = buildApresentacao();
+  ap.forEach((h, i) => push(h, 3 + i));
+  state.conto.forEach((part, i) => {
+    push(pageConto(part, 3 + ap.length + i, i === 0), 3 + ap.length + i);
+  });
+  push(pageSobre(pages.length + 1), pages.length + 1);
+  if (state.ilustradores && state.ilustradores.length) {
+    push(pageIlustradores(pages.length + 1), pages.length + 1);
+  }
+  if (state.equipe && (state.equipe.grupo || state.equipe.simbolo)) {
+    push(pageEquipe(pages.length + 1), pages.length + 1);
+  }
+  push(pageContracapa(), null);
+  document.getElementById('pages').innerHTML = pages.map((html, i) =>
+    '<div class="page-block"><div class="page-scaled">' + html + '</div>' +
+    (nums[i] ? '<div class="page-label">Página ' + nums[i] + '</div>' : '') +
+    '</div>'
+  ).join('\n');
+  document.getElementById('page_count').textContent = pages.length + ' páginas A5';
+  requestAnimationFrame(fitPreview);
+  setTimeout(fitPreview, 150);
+}
+
+/* Escala automática do preview para caber na largura */
+const PAGE_W = 559.37, PAGE_H = 793.70; // A5 em px @96dpi
+function fitPreview() {
+  const preview = document.getElementById('preview');
+  const inner = document.getElementById('preview-inner');
+  if (!inner || !preview) return;
+  const avail = preview.getBoundingClientRect().width;
+  const scale = avail > 40 ? Math.min(1, avail / PAGE_W) : 1;
+  document.querySelectorAll('.page-scaled').forEach(w => {
+    w.style.width = (PAGE_W * scale) + 'px';
+    w.style.height = (PAGE_H * scale) + 'px';
+    const p = w.firstElementChild;
+    p.style.transform = 'scale(' + scale + ')';
+    p.style.transformOrigin = 'top left';
+  });
+}
+
+/* ============================================================
+   FORM <-> STATE
+   ============================================================ */
+const $ = id => document.getElementById(id);
+
+function syncForm() {
+  $('f_titulo').value = state.meta.titulo;
+  $('f_autora').value = state.meta.autora;
+  $('f_local').value = state.meta.local;
+  $('f_ano').value = state.meta.ano;
+  $('f_pedagogico').value = state.meta.pedagogico;
+  $('f_escola').value = state.meta.escola;
+  $('a_heading').value = state.apresentacao.heading;
+  $('a_paras').value = state.apresentacao.paras;
+  $('s_bio').value = state.sobre.bio;
+  $('t_capa').src = state.meta.foto_capa;
+  $('t_foto').src = state.sobre.foto;
+  $('t_grupo').src = state.equipe.grupo;
+  $('t_simbolo').src = state.equipe.simbolo;
+  $('e_legenda').value = state.equipe.legenda;
+  renderContoForm();
+  renderIlustForm();
+}
+
+function readForm() {
+  state.meta.titulo = $('f_titulo').value;
+  state.meta.autora = $('f_autora').value;
+  state.meta.local = $('f_local').value;
+  state.meta.ano = $('f_ano').value;
+  state.meta.pedagogico = $('f_pedagogico').value;
+  state.meta.escola = $('f_escola').value;
+  state.apresentacao.heading = $('a_heading').value;
+  state.apresentacao.paras = $('a_paras').value;
+  state.sobre.bio = $('s_bio').value;
+  state.equipe.legenda = $('e_legenda').value;
+}
+
+function renderIlustForm() {
+  const wrap = $('ilust_list');
+  wrap.innerHTML = '';
+  (state.ilustradores || []).forEach((il, i) => {
+    const d = document.createElement('div');
+    d.className = 'part';
+    d.innerHTML =
+      '<div class="part-head">' +
+        '<h3>Ilustrador ' + (i + 1) + '</h3>' +
+        '<div class="part-actions">' +
+          '<button type="button" data-iup="' + i + '" title="Mover para cima">↑</button>' +
+          '<button type="button" data-idn="' + i + '" title="Mover para baixo">↓</button>' +
+          '<button type="button" data-irm="' + i + '" class="danger">Remover</button>' +
+        '</div>' +
+      '</div>' +
+      '<label>Nome</label><input type="text" data-inome="' + i + '" value="' + esc(il.nome) + '">' +
+      '<label>Função</label><input type="text" data-ifunc="' + i + '" value="' + esc(il.funcao) + '">' +
+      '<label>Bio</label><textarea data-ibio="' + i + '">' + esc(il.bio) + '</textarea>' +
+      '<div class="img-row">' +
+        '<img class="thumb" src="' + il.foto + '" alt="">' +
+        '<input type="file" data-ifile="' + i + '" accept="image/*">' +
+        '<button type="button" data-idef="' + i + '">Padrão</button>' +
+      '</div>';
+    wrap.appendChild(d);
+  });
+}
+
+function attachIlustEvents() {
+  $('ilust_list').addEventListener('input', e => {
+    const t = e.target;
+    if (t.dataset.inome !== undefined) state.ilustradores[+t.dataset.inome].nome = t.value;
+    else if (t.dataset.ifunc !== undefined) state.ilustradores[+t.dataset.ifunc].funcao = t.value;
+    else if (t.dataset.ibio !== undefined) state.ilustradores[+t.dataset.ibio].bio = t.value;
+    else return;
+    onChange();
+  });
+  $('ilust_list').addEventListener('change', e => {
+    if (e.target.type === 'file' && e.target.dataset.ifile !== undefined) {
+      readImage(e.target.files[0], 900).then(url => {
+        if (url) { state.ilustradores[+e.target.dataset.ifile].foto = url; syncForm(); onChange(); }
+      });
+    }
+  });
+  $('ilust_list').addEventListener('click', e => {
+    const b = e.target;
+    if (b.dataset.irm !== undefined) {
+      state.ilustradores.splice(+b.dataset.irm, 1);
+      syncForm(); onChange();
+    } else if (b.dataset.idef !== undefined) {
+      state.ilustradores[+b.dataset.idef].foto = '';
+      syncForm(); onChange();
+    } else if (b.dataset.iup !== undefined) {
+      const j = +b.dataset.iup;
+      if (j > 0) {
+        const tmp = state.ilustradores[j - 1];
+        state.ilustradores[j - 1] = state.ilustradores[j];
+        state.ilustradores[j] = tmp;
+        syncForm(); onChange();
+      }
+    } else if (b.dataset.idn !== undefined) {
+      const j = +b.dataset.idn;
+      if (j < state.ilustradores.length - 1) {
+        const tmp = state.ilustradores[j + 1];
+        state.ilustradores[j + 1] = state.ilustradores[j];
+        state.ilustradores[j] = tmp;
+        syncForm(); onChange();
+      }
+    }
+  });
+}
+
+function renderContoForm() {
+  const wrap = $('conto_list');
+  wrap.innerHTML = '';
+  state.conto.forEach((part, i) => {
+    const d = document.createElement('div');
+    d.className = 'part';
+    d.innerHTML =
+      '<div class="part-head">' +
+        '<h3>Página ' + (i + 1) + '</h3>' +
+        '<div class="part-actions">' +
+          '<button type="button" data-up="' + i + '" title="Mover para cima">↑</button>' +
+          '<button type="button" data-dn="' + i + '" title="Mover para baixo">↓</button>' +
+          '<button type="button" data-rm="' + i + '" class="danger">Remover</button>' +
+        '</div>' +
+      '</div>' +
+      '<textarea data-i="' + i + '" class="part-text" placeholder="Texto do trecho">' + esc(part.text) + '</textarea>' +
+      '<div class="img-row">' +
+        '<img class="thumb" data-t="' + i + '" src="' + part.image + '" alt="">' +
+        '<input type="file" data-file="' + i + '" accept="image/*">' +
+        '<button type="button" data-def="' + i + '">Padrão</button>' +
+      '</div>';
+    wrap.appendChild(d);
+  });
+}
+
+function attachContoEvents() {
+  $('conto_list').addEventListener('input', e => {
+    if (e.target.classList.contains('part-text')) {
+      state.conto[+e.target.dataset.i].text = e.target.value;
+      onChange();
+    }
+  });
+  $('conto_list').addEventListener('click', e => {
+    const b = e.target;
+    const i = +b.dataset.rm;
+    if (b.dataset.rm !== undefined) {
+      state.conto.splice(i, 1);
+      syncForm(); onChange();
+    } else if (b.dataset.def !== undefined) {
+      state.conto[+b.dataset.def].image = defaultContoImage(+b.dataset.def);
+      syncForm(); onChange();
+    } else if (b.dataset.up !== undefined) {
+      const j = +b.dataset.up;
+      if (j > 0) {
+        const tmp = state.conto[j - 1];
+        state.conto[j - 1] = state.conto[j];
+        state.conto[j] = tmp;
+        syncForm(); onChange();
+      }
+    } else if (b.dataset.dn !== undefined) {
+      const j = +b.dataset.dn;
+      if (j < state.conto.length - 1) {
+        const tmp = state.conto[j + 1];
+        state.conto[j + 1] = state.conto[j];
+        state.conto[j] = tmp;
+        syncForm(); onChange();
+      }
+    }
+  });
+  $('conto_list').addEventListener('change', e => {
+    if (e.target.type === 'file' && e.target.dataset.file !== undefined) {
+      readImage(e.target.files[0], 1500).then(url => {
+        state.conto[+e.target.dataset.file].image = url;
+        syncForm(); onChange();
+      });
+    }
+  });
+}
+function defaultContoImage(i) { return i === 0 ? DEFAULT_IMAGE_CONTO : ''; }
+
+/* ============================================================
+   UPLOAD / RESIZE
+   ============================================================ */
+function readImage(file, maxW) {
+  return new Promise((res, rej) => {
+    if (!file) return res('');
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const scale = Math.min(1, (maxW || 1500) / img.width);
+      const cv = document.createElement('canvas');
+      cv.width = Math.max(1, Math.round(img.width * scale));
+      cv.height = Math.max(1, Math.round(img.height * scale));
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      const type = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+      res(cv.toDataURL(type, 0.9));
+      URL.revokeObjectURL(url);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); rej(new Error('imagem inválida')); };
+    img.src = url;
+  });
+}
+
+/* ============================================================
+   STORAGE (IndexedDB) + HISTÓRICO
+   ============================================================ */
+const idb = {
+  db: null,
+  open() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('booklet_editor', 1);
+      r.onupgradeneeded = e => e.target.result.createObjectStore('booklets', { keyPath: 'id' });
+      r.onsuccess = e => { this.db = e.target.result; res(); };
+      r.onerror = e => rej(e);
+    });
+  },
+  put(rec) { return new Promise((res, rej) => { const tx = this.db.transaction('booklets', 'readwrite'); tx.objectStore('booklets').put(rec); tx.oncomplete = res; tx.onerror = rej; }); },
+  del(id) { return new Promise((res, rej) => { const tx = this.db.transaction('booklets', 'readwrite'); tx.objectStore('booklets').delete(id); tx.oncomplete = res; tx.onerror = rej; }); },
+  all() { return new Promise((res, rej) => { const r = this.db.transaction('booklets', 'readonly').objectStore('booklets').getAll(); r.onsuccess = () => res(r.result); r.onerror = rej; }); }
+};
+const clone = o => JSON.parse(JSON.stringify(o));
+
+function fmtDate(ts) {
+  const d = new Date(ts);
+  return d.toLocaleString('pt-BR');
+}
+
+function refreshHistory() {
+  idb.all().then(recs => {
+    const list = recs.filter(r => r.id !== 'draft').sort((a, b) => b.date - a.date);
+    const wrap = $('history');
+    wrap.innerHTML = '';
+    if (!list.length) { wrap.innerHTML = '<p class="hint">Nenhum booklet salvo ainda.</p>'; return; }
+    list.forEach(r => {
+      const d = document.createElement('div');
+      d.className = 'hist-item';
+      d.innerHTML = '<div class="nm">' + esc(r.name) + '</div>' +
+        '<div class="dt">' + fmtDate(r.date) + '</div>' +
+        '<div class="hb">' +
+          '<button data-open="' + r.id + '">Abrir</button>' +
+          '<button data-dup="' + r.id + '">Duplicar</button>' +
+          '<button data-del="' + r.id + '" class="danger">Excluir</button>' +
+        '</div>';
+      wrap.appendChild(d);
+    });
+  });
+}
+
+function historyEvents() {
+  $('history').addEventListener('click', e => {
+    const b = e.target;
+    if (b.dataset.open) {
+      idb.all().then(recs => {
+        const r = recs.find(x => x.id === b.dataset.open);
+        if (r) { state = clone(r.state); applyAndRender(); }
+      });
+    } else if (b.dataset.dup) {
+      idb.all().then(recs => {
+        const r = recs.find(x => x.id === b.dataset.dup);
+        if (r) {
+          idb.put({ id: 'b' + Date.now(), name: r.name + ' (cópia)', date: Date.now(), state: clone(r.state) })
+            .then(refreshHistory);
+        }
+      });
+    } else if (b.dataset.del) {
+      idb.del(b.dataset.del).then(refreshHistory);
+    }
+  });
+}
+
+/* ============================================================
+   AUTOSAVE (rascunho) + MUDANÇAS
+   ============================================================ */
+let saveTimer = null;
+let dirty = false;
+function scheduleAutosave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    idb.put({ id: 'draft', name: 'Rascunho', date: Date.now(), state: clone(state) }).catch(() => {});
+  }, 500);
+}
+function onChange() { dirty = true; render(); scheduleAutosave(); }
+function applyAndRender() { syncForm(); render(); }
+
+/* ============================================================
+   EXPORTAR / IMPORTAR
+   ============================================================ */
+function download(name, content, type) {
+  const blob = new Blob([content], { type: type || 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 100);
+}
+
+function exportMarkdown() {
+  const m = state.meta;
+  const L = [];
+  L.push('---');
+  ['titulo', 'autora', 'local', 'ano', 'pedagogico', 'escola', 'foto_capa'].forEach(k => L.push(k + ': ' + m[k]));
+  L.push('---', '');
+  L.push('## Apresentação', '');
+  if (state.apresentacao.heading) L.push('**' + state.apresentacao.heading + '**', '');
+  paragraphs(state.apresentacao.paras).forEach(p => L.push(p, ''));
+  L.push('## Conto', '');
+  state.conto.forEach((part, i) => {
+    L.push(part.text.trim(), '');
+    if (part.image) L.push('![ilustração](' + part.image + ')', '');
+    if (i < state.conto.length - 1) L.push('---', '');
+  });
+  L.push('## Sobre a autora', '');
+  if (state.sobre.foto) L.push('![ilustração](' + state.sobre.foto + ')', '');
+  L.push(state.sobre.bio.trim(), '');
+  L.push('## Ilustradores', '');
+  (state.ilustradores || []).forEach(il => {
+    L.push('### ' + il.nome, '');
+    if (il.foto) L.push('![ilustração](' + il.foto + ')', '');
+    if (il.funcao) L.push('**' + il.funcao + '**', '');
+    L.push(il.bio.trim(), '');
+    L.push('');
+  });
+  L.push('## A equipe', '');
+  if (state.equipe.grupo) L.push('![ilustração](' + state.equipe.grupo + ')', '');
+  if (state.equipe.simbolo) L.push('![ilustração](' + state.equipe.simbolo + ')', '');
+  if (state.equipe.legenda) L.push(state.equipe.legenda, '');
+  download('template_booklet.md', L.join('\n'), 'text/markdown;charset=utf-8');
+}
+
+function importMarkdown(text) {
+  const fm = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n/);
+  let body = text;
+  const meta = {};
+  if (fm) {
+    fm[1].split('\n').forEach(line => {
+      const i = line.indexOf(':');
+      if (i > 0) meta[line.slice(0, i).trim().toLowerCase()] = line.slice(i + 1).trim();
+    });
+    body = text.slice(fm[0].length);
+  }
+  const sections = {};
+  let cur = null;
+  body.split('\n').forEach(raw => {
+    if (raw.startsWith('### ')) return;
+    if (raw.startsWith('## ')) { cur = raw.slice(3).trim().toLowerCase(); sections[cur] = []; }
+    else if (cur) sections[cur].push(raw);
+  });
+  const get = k => sections[k] ? sections[k].join('\n') : '';
+  const apres = get('apresentação') || get('apresentacao');
+  const aHeading = (apres.match(/\*\*(.+?)\*\*/) || [])[1] || '';
+  const aParas = apres.replace(/\*\*.+?\*\*/, '').replace(/^[\s\n]+/, '').trim();
+  const contoRaw = get('conto');
+  const conto = [];
+  (contoRaw.split(/\n\s*---\s*\n/) || []).forEach(chunk => {
+    const im = chunk.match(/!\[[^\]]*\]\(([^)]+)\)/);
+    const image = im ? im[1] : '';
+    const text = chunk.replace(/!\[[^\]]*\]\([^)]+\)/g, '').trim();
+    conto.push({ text, image });
+  });
+  const sobreRaw = get('sobre a autora') || get('sobre');
+  const sFoto = (sobreRaw.match(/!\[[^\]]*\]\(([^)]+)\)/) || [])[1] || '';
+  const sBio = sobreRaw.replace(/!\[[^\]]*\]\([^)]+\)/g, '').trim();
+
+  // ilustradores
+  const ilRaw = get('ilustradores');
+  const ilustradores = [];
+  let curIl = null;
+  ilRaw.split('\n').forEach(raw => {
+    if (raw.startsWith('### ')) {
+      if (curIl) ilustradores.push(curIl);
+      curIl = { nome: raw.slice(4).trim(), foto: '', funcao: '', bio: [] };
+    } else if (curIl) {
+      const im = raw.match(/!\[[^\]]*\]\(([^)]+)\)/);
+      if (im) curIl.foto = im[1];
+      else if (/^\*\*.+\*\*$/.test(raw.trim())) curIl.funcao = raw.trim().replace(/^\*\*|\*\*$/g, '');
+      else if (raw.trim()) curIl.bio.push(raw.trim());
+    }
+  });
+  if (curIl) ilustradores.push(curIl);
+  ilustradores.forEach(x => { x.bio = x.bio.join(' '); });
+
+  // a equipe
+  const eqRaw = get('a equipe') || get('equipe');
+  const eqImgs = [], eqLeg = [];
+  eqRaw.split('\n').forEach(raw => {
+    const im = raw.match(/!\[[^\]]*\]\(([^)]+)\)/);
+    if (im) eqImgs.push(im[1]);
+    else if (raw.trim() && !raw.startsWith('#')) eqLeg.push(raw.trim());
+  });
+  const equipe = { grupo: eqImgs[0] || '', simbolo: eqImgs[1] || '', legenda: eqLeg.join(' ') };
+
+  state = {
+    meta: Object.assign(exampleState().meta, meta),
+    apresentacao: { heading: aHeading, paras: aParas },
+    conto: conto.length ? conto : exampleState().conto,
+    sobre: { bio: sBio || exampleState().sobre.bio, foto: sFoto },
+    ilustradores: ilustradores.length ? ilustradores : exampleState().ilustradores,
+    equipe: { grupo: equipe.grupo || exampleState().equipe.grupo,
+              simbolo: equipe.simbolo || exampleState().equipe.simbolo,
+              legenda: equipe.legenda }
+  };
+  applyAndRender();
+}
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+function bindStaticEvents() {
+  ['f_titulo', 'f_autora', 'f_local', 'f_ano', 'f_pedagogico', 'f_escola',
+   'a_heading', 'a_paras', 's_bio', 'e_legenda'].forEach(id => {
+    $(id).addEventListener('input', () => { readForm(); onChange(); });
+  });
+  const addPart = () => {
+    state.conto.push({ text: '', image: '' });
+    syncForm(); onChange();
+  };
+  $('add_part').addEventListener('click', addPart);
+  $('add_part_card').addEventListener('click', addPart);
+  $('add_ilust').addEventListener('click', () => {
+    state.ilustradores.push({ nome: '', funcao: '', foto: '', bio: '' });
+    syncForm(); onChange();
+  });
+  $('up_grupo').addEventListener('change', e => {
+    readImage(e.target.files[0], 1600).then(url => { if (url) { state.equipe.grupo = url; syncForm(); onChange(); } });
+  });
+  $('up_simbolo').addEventListener('change', e => {
+    readImage(e.target.files[0], 1200).then(url => { if (url) { state.equipe.simbolo = url; syncForm(); onChange(); } });
+  });
+  $('r_grupo').addEventListener('click', () => { state.equipe.grupo = ''; syncForm(); onChange(); });
+  $('r_simbolo').addEventListener('click', () => { state.equipe.simbolo = ''; syncForm(); onChange(); });
+  $('up_capa').addEventListener('change', e => {
+    readImage(e.target.files[0], 1600).then(url => { if (url) { state.meta.foto_capa = url; syncForm(); onChange(); } });
+  });
+  $('up_foto').addEventListener('change', e => {
+    readImage(e.target.files[0], 1500).then(url => { if (url) { state.sobre.foto = url; syncForm(); onChange(); } });
+  });
+  $('r_capa').addEventListener('click', () => { state.meta.foto_capa = DEFAULT_IMAGE_CAPA; syncForm(); onChange(); });
+  $('r_foto').addEventListener('click', () => { state.sobre.foto = DEFAULT_IMAGE_FOTO; syncForm(); onChange(); });
+  $('btn_print').addEventListener('click', () => window.print());
+  $('btn_md').addEventListener('click', exportMarkdown);
+  $('btn_reset').addEventListener('click', () => { state = exampleState(); applyAndRender(); });
+  $('btn_save').addEventListener('click', () => {
+    const name = prompt('Nome do booklet:', state.meta.titulo || 'Booklet') || 'Booklet';
+    idb.put({ id: 'b' + Date.now(), name, date: Date.now(), state: clone(state) }).then(refreshHistory);
+  });
+  $('btn_imp_md').addEventListener('click', () => $('imp_md').click());
+  $('imp_md').addEventListener('change', e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => importMarkdown(r.result);
+    r.readAsText(f, 'utf-8');
+    e.target.value = '';
+  });
+  document.querySelectorAll('#tabs button').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('#tabs button').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      const isEdit = b.dataset.tab === 'edit';
+      $('panel').classList.toggle('active', isEdit);
+      $('preview').classList.toggle('active', !isEdit);
+      fitPreview();
+    });
+  });
+  window.addEventListener('resize', fitPreview);
+  attachContoEvents();
+  attachIlustEvents();
+  historyEvents();
+}
+
+bindStaticEvents();
+applyAndRender();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitPreview);
+idb.open().then(() => idb.all()).then(recs => {
+  const draft = recs.find(r => r.id === 'draft');
+  if (draft && draft.state && !dirty) { state = clone(draft.state); applyAndRender(); }
+  refreshHistory();
+}).catch(() => {});
+</script>
+</body>
+</html>
