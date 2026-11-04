@@ -52,7 +52,7 @@ Escreva aqui a biografia do autor ou da autora: nome, idade, onde mora e o que g
 
 ## Ilustradores
 
-### Nome do Ilustrador(a) da Capa
+### Nome do Ilustrador da Capa
 
 ![ilustração](ilustracoes/placeholder.png)
 
@@ -60,7 +60,7 @@ Escreva aqui a biografia do autor ou da autora: nome, idade, onde mora e o que g
 
 Escreva aqui um pequeno texto sobre quem ilustrou a capa: idade, hobbies e o que mais gosta.
 
-### Nome do Ilustrador(a) do Conto
+### Nome da Ilustradora do Conto
 
 ![ilustração](ilustracoes/placeholder.png)
 

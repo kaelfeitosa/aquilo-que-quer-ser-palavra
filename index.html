@@ -29,6 +29,7 @@ body { font-family: Georgia, 'Times New Roman', serif; }
 .sc { font-variant-caps: small-caps; }
 .body-text { font-size: 11pt; line-height: 1.6; text-align: justify; orphans: 3; widows: 3; }
 .body-text.center { text-align: center; }
+.dropcap { min-height: 3.3em; }
 .dropcap::first-letter { initial-letter: 2; color: #94241f; font-weight: bold; margin-right: 2mm; }
 .signature { text-align: center; font-style: italic; font-size: 12pt; }
 .page-num { position: absolute; bottom: 6mm; width: 100%; text-align: center;
@@ -48,10 +49,11 @@ body { font-family: Georgia, 'Times New Roman', serif; }
 .ilustrador { display: flex; gap: 6mm; align-items: flex-start; margin-bottom: 8mm; }
 .ilustrador .frame { flex: 0 0 auto; }
 .ilustrador .txt { flex: 1; }
-.ilustrador .nome { font-weight: bold; font-size: 12pt; color: #29201a; }
+.ilustrador .nome { font-weight: bold; font-size: 12pt; color: #29201a; margin-bottom: 1.5mm; }
 .ilustrador .funcao { font-variant-caps: small-caps; letter-spacing: 0.5pt; color: #94241f;
                       font-size: 10pt; margin: 1mm 0 2mm; }
 .ilustrador .bio { font-size: 10pt; line-height: 1.55; text-align: justify; color: #29201a; }
+.ilustrador .bio + .bio { margin-top: 2mm; }
 .equipe-foto { display: block; margin: 0 auto; }
 
 /* ============ APP / FORM (somente tela) ============ */
@@ -101,8 +103,11 @@ body.app { background: var(--bg); }
     padding: 10px; border: 1px solid #ccc; border-radius: 8px; background: #fff; }
 .panel textarea { min-height: 70px; resize: vertical; }
 .panel input:focus, .panel textarea:focus { outline: 2px solid var(--gold); border-color: var(--gold); }
+.panel input[readonly] { background: #f3f0ea; color: #666; cursor: default; outline: none; }
 .panel .img-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.panel .img-row input[type=file] { flex: 1; min-width: 0; font-size: 9pt; }
 .panel .thumb { width: 56px; height: 42px; object-fit: cover; border: 1px solid #ccc; border-radius: 6px; background: #f3f3f3; }
+.panel .thumb[src=""], .panel .thumb:not([src]) { visibility: hidden; }
 .panel button { font-family: Georgia, serif; font-size: 10pt; padding: 9px 12px; border-radius: 8px;
     border: 1px solid var(--gold); background: #fbf4e3; color: #6b4d16; cursor: pointer; min-height: 40px; }
 .panel button:hover { background: #f3e6c5; }
@@ -119,13 +124,21 @@ body.app { background: var(--bg); }
 .hist-item .dt { font-size: 8.5pt; color: #888; }
 .hist-item .hb { margin-top: 6px; display: flex; gap: 6px; flex-wrap: wrap; }
 .preview { flex: 1; overflow-y: auto; padding: 14px; background: var(--bg); }
-.preview-inner { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.preview-inner, #pages { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 18px; }
 .page-block { display: flex; flex-direction: column; align-items: center; }
 .page-scaled { overflow: hidden; }
 .preview .page { box-shadow: 0 2px 10px rgba(0,0,0,.22); margin: 0; }
 .page-label { font-size: 9pt; color: #8a7f72; font-style: italic; margin-top: 6px; text-align: center; }
 .hint { font-size: 9pt; color: #777; }
 .count { font-size: 9pt; color: #555; margin-bottom: 6px; text-align: center; }
+
+/* Seletor compacto de gênero por pessoa [ ♀ | ♂ ] ao lado do nome */
+.name-row { display: flex; gap: 6px; align-items: stretch; }
+.name-row input[type=text] { flex: 1; min-width: 0; }
+.panel button.g-btn { min-width: 36px; padding: 0 10px; font-size: 11.5pt;
+                      background: #fff; color: var(--ink); border: 1px solid #ccc; }
+.panel button.g-btn:hover { background: #fbf4e3; }
+.panel button.g-btn.active { background: var(--red); color: #fff; border-color: var(--red); font-weight: bold; }
 
 /* Desktop: sidebar + preview com scroll independente */
 @media (min-width: 900px) {
@@ -142,7 +155,7 @@ body.app { background: var(--bg); }
   .toolbar, .tabs { display: none !important; }
   .panel { display: none !important; }
   .preview { padding: 0; display: block; overflow: visible; }
-  .preview-inner { gap: 0; display: block; }
+  .preview-inner, #pages { gap: 0; display: block; }
   .page-block { display: block; }
   .page-label { display: none; }
   .page-scaled { width: auto !important; height: auto !important; overflow: visible; }
@@ -179,8 +192,13 @@ body.app { background: var(--bg); }
   <aside class="panel pane active" id="panel">
     <div class="card">
       <h2>Ficha</h2>
-      <label>Título</label><input type="text" id="f_titulo">
-      <label>Autora / Autor</label><input type="text" id="f_autora">
+      <label>Título do Livro</label><input type="text" id="f_titulo">
+      <label id="lbl_autora">Autora</label>
+      <div class="name-row">
+        <input type="text" id="f_autora">
+        <button type="button" class="g-btn active" id="f_gen_f" title="Feminino">♀</button>
+        <button type="button" class="g-btn" id="f_gen_m" title="Masculino">♂</button>
+      </div>
       <label>Local</label><input type="text" id="f_local">
       <label>Ano</label><input type="text" id="f_ano">
       <label>Acompanhamento Pedagógico</label><input type="text" id="f_pedagogico">
@@ -207,21 +225,16 @@ body.app { background: var(--bg); }
     </div>
 
     <div class="card">
-      <h2>Sobre a autora</h2>
-      <label>Bio</label>
-      <textarea id="s_bio" style="min-height:80px"></textarea>
-      <label>Foto</label>
-      <div class="img-row">
-        <img class="thumb" id="t_foto" alt="">
-        <input type="file" id="up_foto" accept="image/*">
-        <button type="button" id="r_foto">Padrão</button>
-      </div>
+      <h2 id="card_sobre_title">Sobre a autora</h2>
+      <div id="autores_list"></div>
+      <button type="button" class="primary" id="add_autor">+ Adicionar coautor(a)</button>
     </div>
 
-    <div class="card">
-      <h2>Ilustradores</h2>
+    <div class="card" id="card_ilustradores">
+      <h2 id="card_ilust_title">Ilustradores (opcional)</h2>
+      <p class="hint" id="ilust_hint" style="margin-bottom:8px; line-height: 1.4;"></p>
       <div id="ilust_list"></div>
-      <button type="button" class="primary" id="add_ilust">+ Adicionar ilustrador</button>
+      <button type="button" class="primary" id="add_ilust">+ Adicionar ilustrador(a)</button>
     </div>
 
     <div class="card">
@@ -259,7 +272,7 @@ body.app { background: var(--bg); }
 <script>
 'use strict';
 /* ============================================================
-   ESTADO
+   ESTADO E NORMALIZAÇÃO (Unificado por pessoa)
    ============================================================ */
 const DEFAULT_IMAGE_CAPA = 'ilustracoes/foto_capa.png';
 const DEFAULT_IMAGE_CONTO = 'ilustracoes/foto_historia.png';
@@ -269,7 +282,6 @@ function exampleState() {
   return {
     meta: {
       titulo: 'A Flor e o Pássaro Vermelho',
-      autora: 'Nome da Autora',
       local: 'Sua Cidade – UF',
       ano: '2026',
       pedagogico: 'Nome do(a) Orientador(a)',
@@ -285,16 +297,20 @@ function exampleState() {
       { text: 'O pássaro se aproximou da flor e percebeu que ela estava triste. Então, perguntou o que havia acontecido, e ela respondeu que se sentia muito sozinha.', image: '' },
       { text: 'Ele perguntou se ela gostaria de ter companhia, e ela aceitou. Os dois começaram a conversar sobre a vida e ficaram ali, trocando histórias até o anoitecer.', image: '' },
       { text: 'Quando ficou bem tarde, os dois foram dormir. No dia seguinte, o pássaro saiu para procurar comida para eles, enquanto a flor ficou esperando por ele. De repente, começou a chover, e a flor ficou toda molhada.', image: '' },
-      { text: 'O pássaro demorou um pouquinho, e a flor achou que ele não ia voltar. Mas, depois de um tempo, ele voltou! A flor ficou muito feliz, e os dois ficaram juntos e felizes para sempre.', image: '' }
+      { text: 'O pássaro demorou um pouquinho, e a flor já estava achando que ele a tinha abandonado de vez. Demorou um tempinho que, para a flor, pareceu uma eternidade. Mas o pássaro voltou para ficar de vez, e a flor ficou tão contente! Dali em diante, eles continuaram juntos e viveram felizes para sempre.', image: '' }
     ],
-    sobre: {
-      bio: 'Escreva aqui a biografia do autor ou da autora: nome, idade, onde mora e o que gosta de fazer.',
-      foto: DEFAULT_IMAGE_FOTO
-    },
+    autores: [
+      {
+        nome: 'Nome da Autora',
+        genero: 'f',
+        foto: DEFAULT_IMAGE_FOTO,
+        bio: 'Escreva aqui a biografia do autor ou da autora: nome, idade, onde mora e o que gosta de fazer.'
+      }
+    ],
     ilustradores: [
-      { nome: 'Nome do Ilustrador(a) da Capa', funcao: 'Ilustrações da capa', foto: 'ilustracoes/placeholder.png',
+      { nome: 'Nome do Ilustrador da Capa', genero: 'm', funcao: 'Ilustrações da capa', foto: 'ilustracoes/placeholder.png',
         bio: 'Escreva aqui um pequeno texto sobre quem ilustrou a capa: idade, hobbies e o que mais gosta.' },
-      { nome: 'Nome do Ilustrador(a) do Conto', funcao: 'Ilustrações do conto', foto: 'ilustracoes/placeholder.png',
+      { nome: 'Nome da Ilustradora do Conto', genero: 'f', funcao: 'Ilustrações do conto', foto: 'ilustracoes/placeholder.png',
         bio: 'Escreva aqui um pequeno texto sobre quem ilustrou o conto: idade, hobbies e o que mais gosta.' }
     ],
     equipe: {
@@ -305,13 +321,60 @@ function exampleState() {
   };
 }
 
+function inferGen(nome, fallback) {
+  if (/autora|ilustradora/i.test(nome || '')) return 'f';
+  if (/autor|ilustrador/i.test(nome || '')) return 'm';
+  return fallback || 'f';
+}
+
+function normalizeState(s) {
+  if (!s) return exampleState();
+  if (!s.meta) s.meta = {};
+  if (!s.meta.foto_capa) s.meta.foto_capa = DEFAULT_IMAGE_CAPA;
+
+  // Retrocompatibilidade com formato original (meta.autora + sobre.bio/foto)
+  if (!Array.isArray(s.autores) || !s.autores.length) {
+    const legacySobre = s.sobre || {};
+    if (Array.isArray(legacySobre.autores) && legacySobre.autores.length) {
+      s.autores = legacySobre.autores.map(a => ({
+        nome: a.nome || '',
+        genero: (a.genero === 'f' || a.genero === 'm') ? a.genero : inferGen(a.nome, 'f'),
+        foto: a.foto || DEFAULT_IMAGE_FOTO,
+        bio: a.bio || ''
+      }));
+    } else {
+      const n0 = s.meta.autora || '';
+      s.autores = [{
+        nome: n0,
+        genero: inferGen(n0, 'f'),
+        foto: legacySobre.foto !== undefined ? legacySobre.foto : DEFAULT_IMAGE_FOTO,
+        bio: legacySobre.bio || ''
+      }];
+    }
+  } else {
+    s.autores.forEach(a => {
+      if (a.genero !== 'f' && a.genero !== 'm') a.genero = inferGen(a.nome, 'f');
+    });
+  }
+  delete s.sobre;
+
+  if (!s.apresentacao) s.apresentacao = { heading: '', paras: '' };
+  if (!Array.isArray(s.conto)) s.conto = [];
+  if (!Array.isArray(s.ilustradores)) s.ilustradores = [];
+  s.ilustradores.forEach(il => {
+    if (il.genero !== 'f' && il.genero !== 'm') il.genero = inferGen(il.nome, 'm');
+  });
+  if (!s.equipe) s.equipe = { grupo: '', simbolo: '', legenda: '' };
+  return s;
+}
+
 let state = exampleState();
 
 /* ============================================================
-   HELPERS
+   HELPERS E CONCORDÂNCIA AUTOMÁTICA
    ============================================================ */
 function esc(s) {
-  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 function mdInline(s) {
   s = esc(s);
@@ -341,6 +404,34 @@ function paragraphs(text) {
   return String(text || '').split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
 }
 
+function formatNomesList(nomes) {
+  if (nomes.length <= 1) return nomes[0] || '';
+  return nomes.slice(0, -1).join(', ') + ' e ' + nomes[nomes.length - 1];
+}
+
+function autoresStr() {
+  return formatNomesList((state.autores || []).map(a => (a.nome || '').trim()).filter(Boolean));
+}
+
+function getSobreTitulo() {
+  const auts = state.autores || [];
+  const isSame = (!state.ilustradores || state.ilustradores.length === 0);
+  const allFem = auts.length > 0 && auts.every(a => a.genero !== 'm');
+  if (auts.length > 1) {
+    if (allFem) return isSame ? 'Sobre as autoras e ilustradoras' : 'Sobre as autoras';
+    return isSame ? 'Sobre os autores e ilustradores' : 'Sobre os autores';
+  }
+  if (allFem) return isSame ? 'Sobre a autora e ilustradora' : 'Sobre a autora';
+  return isSame ? 'Sobre o autor e ilustrador' : 'Sobre o autor';
+}
+
+function getIlustTitulo() {
+  const ils = state.ilustradores || [];
+  const allFem = ils.length > 0 && ils.every(x => x.genero === 'f');
+  if (ils.length === 1) return allFem ? 'Ilustradora' : 'Ilustrador';
+  return allFem ? 'Ilustradoras' : 'Ilustradores';
+}
+
 /* ============================================================
    MEDIÇÃO (paginação da apresentação)
    ============================================================ */
@@ -360,9 +451,9 @@ function measureLines(text, sizePt) {
 function paraHeight(text, sizePt) {
   return measureLines(text, sizePt) * sizePt * 1.6 + sizePt * 0.6;
 }
-function paginate(items) {
+function paginate(items, hasHeading) {
   const pages = [[]];
-  let curH = 0, avail = 505;
+  let curH = 0, avail = hasHeading ? 445 : 505;
   for (const it of items) {
     const h = paraHeight(it.text, it.size);
     if (curH + h > avail) { pages.push([]); curH = 0; avail = 505; }
@@ -375,38 +466,48 @@ function paginate(items) {
 /* ============================================================
    LAYOUT DAS PÁGINAS
    ============================================================ */
+function locAno(m) {
+  return [m.local, m.ano].map(x => String(x || '').trim()).filter(Boolean).map(esc).join(' &middot; ');
+}
+
 function pageCapa() {
   const m = state.meta, t = splitTitle(m.titulo);
+  const tituloHtml = t[1] ? `${esc(t[0])}<br>${esc(t[1])}` : esc(t[0]);
   return `<div class="page cream">
   <div class="band-top"></div><div class="band-bottom"></div>
   <div class="page-inner" style="display:flex; flex-direction:column">
-    <p class="cover-author">${esc(m.autora)}</p>
+    <p class="cover-author">${esc(autoresStr())}</p>
     ${orn()}
-    <p class="title-line big" style="letter-spacing:0.5pt">${esc(t[0])}<br>${esc(t[1])}</p>
+    <p class="title-line big" style="letter-spacing:0.5pt">${tituloHtml}</p>
     <hr class="rule short">
     <div style="text-align:center; margin:7mm 0">
-      <img src="${m.foto_capa}" style="width:92mm; display:block; margin:0 auto" alt="capa">
+      <img src="${esc(m.foto_capa || DEFAULT_IMAGE_CAPA)}" style="width:92mm; display:block; margin:0 auto" alt="capa">
     </div>
     <div style="flex:1"></div>
     <hr class="rule">
-    <p class="subtitle" style="text-align:center; font-style:italic; color:#6b6157; font-size:10.5pt">${esc(m.local)} &middot; ${esc(m.ano)}</p>
+    <p class="subtitle" style="text-align:center; font-style:italic; color:#6b6157; font-size:10.5pt">${locAno(m)}</p>
   </div>
 </div>`;
 }
 
 function creditosList() {
   const out = [];
-  if (state.ilustradores && state.ilustradores.length) {
+  const m = state.meta;
+  const isSame = (!state.ilustradores || state.ilustradores.length === 0);
+  if (isSame) {
+    out.push({ label: 'Texto e Ilustrações', value: autoresStr() });
+  } else {
     state.ilustradores.forEach(il => out.push({ label: il.funcao || 'Ilustrações', value: il.nome }));
-  } else if (state.meta.capa) {
-    out.push({ label: 'Capa', value: state.meta.capa });
   }
-  if (state.meta.pedagogico) out.push({ label: 'Acompanhamento Pedagógico', value: state.meta.pedagogico });
+  if (m.pedagogico) {
+    out.push({ label: 'Acompanhamento Pedagógico', value: m.pedagogico });
+  }
   return out;
 }
 
 function pageRosto(num) {
   const m = state.meta, t = splitTitle(m.titulo);
+  const tituloHtml = t[1] ? `${esc(t[0])}<br>${esc(t[1])}` : esc(t[0]);
   const cred = creditosList().map(c =>
     '<p class="body-text center" style="font-size:8.5pt; line-height:1.6; color:#6b6157; margin:0 0 6mm 0">' +
     '<span class="sc">' + esc(c.label) + '</span><br>' + esc(c.value) + '</p>'
@@ -414,16 +515,16 @@ function pageRosto(num) {
   return `<div class="page cream">
   <div class="page-inner" style="display:flex; flex-direction:column">
     <div style="flex:1"></div>
-    <p class="title-line med">${esc(t[0])}<br>${esc(t[1])}</p>
+    <p class="title-line med">${tituloHtml}</p>
     <hr class="rule">
-    <p class="author-small red" style="font-size:13pt">${esc(m.autora)}</p>
+    <p class="author-small red" style="font-size:13pt">${esc(autoresStr())}</p>
     <p class="subtitle" style="text-align:center; font-style:italic; color:#6b6157; font-size:10.5pt; margin-top:1.5mm">${esc(m.local)}</p>
     <div style="flex:1"></div>
     <hr class="rule" style="width:35%; border-top-width:0.8pt">
     <div style="padding-top:2mm">
       ${cred}
       <p class="body-text center" style="font-size:8.5pt; color:#6b6157">
-        ${esc(m.local)} &middot; ${esc(m.ano)}
+        ${locAno(m)}
       </p>
     </div>
   </div>
@@ -444,7 +545,8 @@ function buildApresentacao() {
   if (m.pedagogico) {
     items.push({ html: '<p class="signature red">' + esc(m.pedagogico) + '</p>', text: m.pedagogico, size: 12 });
   }
-  const pgs = paginate(items);
+  if (!a.heading && !items.length) return [];
+  const pgs = paginate(items, Boolean(a.heading));
   return pgs.map((blocks, i) => {
     if (i === 0 && a.heading) {
       blocks = [orn(), '<p class="heading red sc">' + esc(a.heading) + '</p>\n<hr class="rule" style="width:30%">'].concat(blocks);
@@ -458,7 +560,7 @@ function pageConto(part, num, dropcap) {
   paragraphs(part.text).forEach((p, i) => {
     body += i === 0 && dropcap ? '<p class="dropcap">' + mdInline(p) + '</p>' : '<p>' + mdInline(p) + '</p>';
   });
-  if (part.image) body += '<div class="imgwrap"><img src="' + part.image + '" alt="ilustração"></div>';
+  if (part.image) body += '<div class="imgwrap"><img src="' + esc(part.image) + '" alt="ilustração"></div>';
   return `<div class="page cream">
   <div class="page-inner" style="display:flex; flex-direction:column; justify-content:center">
     <div class="content conto-content" style="width:100%">${body}</div>
@@ -468,14 +570,41 @@ function pageConto(part, num, dropcap) {
 }
 
 function pageSobre(num) {
-  const s = state.sobre;
-  const foto = s.foto
-    ? '<div style="text-align:center; margin-top:8mm"><span class="frame" style="display:inline-block"><img src="' + s.foto + '" style="width:70mm; display:block" alt="foto"></span></div>'
+  const auts = state.autores || [];
+  const titulo = getSobreTitulo();
+
+  if (auts.length > 1) {
+    let blocos = '';
+    auts.forEach(x => {
+      const bio = paragraphs(x.bio).map(p => '<p class="bio">' + mdInline(p) + '</p>').join('');
+      const foto = esc(x.foto || DEFAULT_IMAGE_FOTO);
+      blocos += `<div class="ilustrador">
+        <span class="frame" style="display:inline-block"><img src="${foto}" style="width:34mm; display:block" alt="${esc(x.nome)}"></span>
+        <div class="txt">
+          <p class="nome">${esc(x.nome)}</p>
+          ${bio}
+        </div>
+      </div>`;
+    });
+    return `<div class="page cream">
+  <div class="page-inner">
+    <p class="heading red big sc">${esc(titulo)}</p>
+    <hr class="rule" style="width:34%">
+    <div style="margin-top:7mm">${blocos}</div>
+  </div>
+  <span class="page-num">&middot; ${num} &middot;</span>
+</div>`;
+  }
+
+  // 1 pessoa (foto grande centralizada)
+  const item = auts[0] || { foto: '', bio: '' };
+  const foto = item.foto
+    ? '<div style="text-align:center; margin-top:8mm"><span class="frame" style="display:inline-block"><img src="' + esc(item.foto) + '" style="width:70mm; display:block" alt="foto"></span></div>'
     : '<div class="foto-place" style="height:32mm; margin-top:10mm">espaço para foto</div>';
-  const bio = paragraphs(s.bio).map(p => '<p>' + mdInline(p) + '</p>').join('');
+  const bio = paragraphs(item.bio).map(p => '<p>' + mdInline(p) + '</p>').join('');
   return `<div class="page cream">
   <div class="page-inner">
-    <p class="heading red big sc">Sobre a autora</p>
+    <p class="heading red big sc">${esc(titulo)}</p>
     <hr class="rule" style="width:34%">
     ${foto}
     <div class="content" style="margin-top:6mm">${bio}</div>
@@ -486,27 +615,30 @@ function pageSobre(num) {
 
 function pageContracapa() {
   const m = state.meta, t = splitTitle(m.titulo);
+  const tituloHtml = t[1] ? `${esc(t[0])}<br>${esc(t[1])}` : esc(t[0]);
   const cred = creditosList().map(c =>
     '<p style="margin:0 0 6mm 0"><span class="sc">' + esc(c.label) + '</span><br>' + esc(c.value) + '</p>'
   ).join('');
   return `<div class="page" style="background:#94241f">
   <div class="page-inner" style="display:flex; flex-direction:column; align-items:center; justify-content:center">
-    <p class="title-line" style="font-size:20pt; color:#ffffff">${esc(t[0])}<br>${esc(t[1])}</p>
+    <p class="title-line" style="font-size:20pt; color:#ffffff">${tituloHtml}</p>
     <hr class="rule">
-    <p class="author-small" style="color:#fdf6f2">${esc(m.autora)}</p>
-    ${orn()}
+    <p class="author-small" style="color:#fdf6f2">${esc(autoresStr())}</p>
+    ${orn('#b3923f')}
     <div class="body-text center" style="color:#f6e7e0; font-size:9.5pt; margin-top:4mm">${cred}</div>
-    <p class="subtitle" style="color:#e9d2c8; font-size:9pt; margin-top:10mm; text-align:center; font-style:italic">${esc(m.local)} &middot; ${esc(m.ano)}</p>
+    <p class="subtitle" style="color:#e9d2c8; font-size:9pt; margin-top:10mm; text-align:center; font-style:italic">${locAno(m)}</p>
   </div>
 </div>`;
 }
 
 function pageIlustradores(num) {
   let blocos = '';
+  const tituloIlust = getIlustTitulo();
   (state.ilustradores || []).forEach(x => {
     const bio = paragraphs(x.bio).map(p => '<p class="bio">' + mdInline(p) + '</p>').join('');
+    const foto = esc(x.foto || DEFAULT_IMAGE_FOTO);
     blocos += `<div class="ilustrador">
-      <span class="frame" style="display:inline-block"><img src="${x.foto}" style="width:34mm; display:block" alt="${esc(x.nome)}"></span>
+      <span class="frame" style="display:inline-block"><img src="${foto}" style="width:34mm; display:block" alt="${esc(x.nome)}"></span>
       <div class="txt">
         <p class="nome">${esc(x.nome)}</p>
         <p class="funcao">${esc(x.funcao)}</p>
@@ -516,7 +648,7 @@ function pageIlustradores(num) {
   });
   return `<div class="page cream">
   <div class="page-inner">
-    <p class="heading red big sc">Ilustradores</p>
+    <p class="heading red big sc">${esc(tituloIlust)}</p>
     <hr class="rule" style="width:34%">
     <div style="margin-top:7mm">${blocos}</div>
   </div>
@@ -526,9 +658,10 @@ function pageIlustradores(num) {
 
 function pageEquipe(num) {
   const eq = state.equipe || {}, m = state.meta;
-  const legenda = eq.legenda || (m.local + ' · ' + m.ano);
-  const grupo = eq.grupo ? '<span class="frame" style="display:inline-block"><img src="' + eq.grupo + '" class="equipe-foto" style="width:88mm" alt="equipe"></span>' : '';
-  const simbolo = eq.simbolo ? '<img src="' + eq.simbolo + '" style="width:32mm; display:inline-block; margin:0 auto" alt="símbolo">' : '';
+  const defaultLeg = [m.local, m.ano].map(x => String(x || '').trim()).filter(Boolean).join(' · ');
+  const legenda = eq.legenda || defaultLeg;
+  const grupo = eq.grupo ? '<span class="frame" style="display:inline-block"><img src="' + esc(eq.grupo) + '" class="equipe-foto" style="width:88mm" alt="equipe"></span>' : '';
+  const simbolo = eq.simbolo ? '<img src="' + esc(eq.simbolo) + '" style="width:32mm; display:inline-block; margin:0 auto" alt="símbolo">' : '';
   const escola = m.escola ? '<p class="subtitle" style="text-align:center; font-size:9pt; color:#6b6157; margin-top:2mm">' + esc(m.escola) + '</p>' : '';
   return `<div class="page cream">
   <div class="page-inner" style="display:flex; flex-direction:column; align-items:center">
@@ -555,7 +688,9 @@ function render() {
     push(pageConto(part, 3 + ap.length + i, i === 0), 3 + ap.length + i);
   });
   push(pageSobre(pages.length + 1), pages.length + 1);
-  if (state.ilustradores && state.ilustradores.length) {
+
+  // Ilustradores só aparecem se houver ilustradores adicionados
+  if (state.ilustradores && state.ilustradores.length > 0) {
     push(pageIlustradores(pages.length + 1), pages.length + 1);
   }
   if (state.equipe && (state.equipe.grupo || state.equipe.simbolo)) {
@@ -594,58 +729,218 @@ function fitPreview() {
    ============================================================ */
 const $ = id => document.getElementById(id);
 
+function syncAutorHeaderAndFicha() {
+  const auts = state.autores || [];
+  const allFem = auts.length > 0 && auts.every(a => a.genero !== 'm');
+  $('lbl_autora').textContent = auts.length > 1 ? (allFem ? 'Autoras' : 'Autores') : (allFem ? 'Autora' : 'Autor');
+  $('f_autora').value = autoresStr();
+  $('f_autora').readOnly = auts.length > 1;
+  $('f_gen_f').style.display = auts.length === 1 ? '' : 'none';
+  $('f_gen_m').style.display = auts.length === 1 ? '' : 'none';
+  if (auts.length === 1) {
+    $('f_gen_f').classList.toggle('active', auts[0].genero !== 'm');
+    $('f_gen_m').classList.toggle('active', auts[0].genero === 'm');
+  }
+  $('card_sobre_title').textContent = getSobreTitulo();
+}
+
+function syncIlustHeader() {
+  const isSame = (!state.ilustradores || state.ilustradores.length === 0);
+  $('card_ilust_title').textContent = isSame ? 'Ilustradores (opcional)' : getIlustTitulo() + ' (opcional)';
+  $('ilust_hint').textContent = isSame
+    ? '✓ Nenhum ilustrador externo adicionado — o livro assume ilustrações próprias ("Texto e Ilustrações").'
+    : 'Quem ilustrou o livro (além de quem escreveu):';
+  $('ilust_hint').style.color = isSame ? '#94241f' : '#777';
+}
+
 function syncForm() {
-  $('f_titulo').value = state.meta.titulo;
-  $('f_autora').value = state.meta.autora;
-  $('f_local').value = state.meta.local;
-  $('f_ano').value = state.meta.ano;
-  $('f_pedagogico').value = state.meta.pedagogico;
-  $('f_escola').value = state.meta.escola;
-  $('a_heading').value = state.apresentacao.heading;
-  $('a_paras').value = state.apresentacao.paras;
-  $('s_bio').value = state.sobre.bio;
-  $('t_capa').src = state.meta.foto_capa;
-  $('t_foto').src = state.sobre.foto;
-  $('t_grupo').src = state.equipe.grupo;
-  $('t_simbolo').src = state.equipe.simbolo;
-  $('e_legenda').value = state.equipe.legenda;
+  $('f_titulo').value = state.meta.titulo || '';
+  $('f_local').value = state.meta.local || '';
+  $('f_ano').value = state.meta.ano || '';
+  $('f_pedagogico').value = state.meta.pedagogico || '';
+  $('f_escola').value = state.meta.escola || '';
+
+  $('a_heading').value = state.apresentacao.heading || '';
+  $('a_paras').value = state.apresentacao.paras || '';
+
+  $('t_capa').setAttribute('src', state.meta.foto_capa || DEFAULT_IMAGE_CAPA);
+  $('t_grupo').setAttribute('src', state.equipe.grupo || '');
+  $('t_simbolo').setAttribute('src', state.equipe.simbolo || '');
+  $('r_grupo').textContent = state.equipe.grupo ? 'Remover' : 'Padrão';
+  $('r_simbolo').textContent = state.equipe.simbolo ? 'Remover' : 'Padrão';
+  $('e_legenda').value = state.equipe.legenda || '';
+
+  syncAutorHeaderAndFicha();
+  syncIlustHeader();
   renderContoForm();
+  renderAutoresForm();
   renderIlustForm();
 }
 
 function readForm() {
   state.meta.titulo = $('f_titulo').value;
-  state.meta.autora = $('f_autora').value;
+  if (state.autores && state.autores.length === 1) {
+    state.autores[0].nome = $('f_autora').value;
+  }
   state.meta.local = $('f_local').value;
   state.meta.ano = $('f_ano').value;
   state.meta.pedagogico = $('f_pedagogico').value;
   state.meta.escola = $('f_escola').value;
+
   state.apresentacao.heading = $('a_heading').value;
   state.apresentacao.paras = $('a_paras').value;
-  state.sobre.bio = $('s_bio').value;
   state.equipe.legenda = $('e_legenda').value;
+}
+
+function swapGenderPlaceholder(name, gen) {
+  const s = String(name || '').trim();
+  if (gen === 'm') {
+    if (s === 'Nome da Autora') return 'Nome do Autor';
+    if (s.startsWith('Autora ')) return s.replace(/^Autora /, 'Autor ');
+    if (s.startsWith('Nome da Ilustradora')) return s.replace(/^Nome da Ilustradora/, 'Nome do Ilustrador');
+  } else {
+    if (s === 'Nome do Autor') return 'Nome da Autora';
+    if (s.startsWith('Autor ')) return s.replace(/^Autor /, 'Autora ');
+    if (s.startsWith('Nome do Ilustrador')) return s.replace(/^Nome do Ilustrador/, 'Nome da Ilustradora');
+  }
+  return name;
+}
+
+function renderAutoresForm() {
+  const wrap = $('autores_list');
+  wrap.innerHTML = '';
+  const total = (state.autores || []).length;
+  if (total === 1) {
+    const aut = state.autores[0];
+    const d = document.createElement('div');
+    d.style.marginBottom = '10px';
+    d.innerHTML =
+      '<label>Bio</label><textarea data-abio="0">' + esc(aut.bio) + '</textarea>' +
+      '<div class="img-row">' +
+        '<img class="thumb" src="' + esc(aut.foto) + '" alt="">' +
+        '<input type="file" data-afile="0" accept="image/*">' +
+        '<button type="button" data-adef="0">Padrão</button>' +
+      '</div>';
+    wrap.appendChild(d);
+    return;
+  }
+  (state.autores || []).forEach((aut, i) => {
+    const isFem = aut.genero !== 'm';
+    const roleLbl = (isFem ? 'Autora ' : 'Autor ') + (i + 1);
+    const d = document.createElement('div');
+    d.className = 'part';
+    d.innerHTML =
+      '<div class="part-head">' +
+        '<h3>' + roleLbl + '</h3>' +
+        '<div class="part-actions">' +
+          '<button type="button" data-aup="' + i + '" title="Mover para cima">↑</button>' +
+          '<button type="button" data-adn="' + i + '" title="Mover para baixo">↓</button>' +
+          '<button type="button" data-arm="' + i + '" class="danger">Remover</button>' +
+        '</div>' +
+      '</div>' +
+      '<label>Nome</label>' +
+      '<div class="name-row">' +
+        '<input type="text" data-anome="' + i + '" value="' + esc(aut.nome) + '">' +
+        '<button type="button" class="g-btn' + (isFem ? ' active' : '') + '" data-agen="' + i + '" data-g="f" title="Feminino">♀</button>' +
+        '<button type="button" class="g-btn' + (!isFem ? ' active' : '') + '" data-agen="' + i + '" data-g="m" title="Masculino">♂</button>' +
+      '</div>' +
+      '<label>Bio</label><textarea data-abio="' + i + '">' + esc(aut.bio) + '</textarea>' +
+      '<div class="img-row">' +
+        '<img class="thumb" src="' + esc(aut.foto || DEFAULT_IMAGE_FOTO) + '" alt="">' +
+        '<input type="file" data-afile="' + i + '" accept="image/*">' +
+        '<button type="button" data-adef="' + i + '">Padrão</button>' +
+      '</div>';
+    wrap.appendChild(d);
+  });
+}
+
+function attachAutoresEvents() {
+  $('autores_list').addEventListener('input', e => {
+    const t = e.target;
+    if (t.dataset.anome !== undefined) {
+      state.autores[+t.dataset.anome].nome = t.value;
+      syncAutorHeaderAndFicha();
+    } else if (t.dataset.abio !== undefined) {
+      state.autores[+t.dataset.abio].bio = t.value;
+    } else return;
+    onChange();
+  });
+  $('autores_list').addEventListener('change', e => {
+    if (e.target.type === 'file' && e.target.dataset.afile !== undefined) {
+      const idx = +e.target.dataset.afile;
+      readImage(e.target.files[0], 1500).then(url => {
+        if (url) { state.autores[idx].foto = url; syncForm(); onChange(); }
+      });
+      e.target.value = '';
+    }
+  });
+  $('autores_list').addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.agen !== undefined) {
+      const idx = +b.dataset.agen;
+      const g = b.dataset.g;
+      state.autores[idx].genero = g;
+      state.autores[idx].nome = swapGenderPlaceholder(state.autores[idx].nome, g);
+      syncForm(); onChange();
+    } else if (b.dataset.arm !== undefined && state.autores.length > 1) {
+      state.autores.splice(+b.dataset.arm, 1);
+      syncForm(); onChange();
+    } else if (b.dataset.adef !== undefined) {
+      state.autores[+b.dataset.adef].foto = DEFAULT_IMAGE_FOTO;
+      syncForm(); onChange();
+    } else if (b.dataset.aup !== undefined) {
+      const j = +b.dataset.aup;
+      if (j > 0) {
+        const tmp = state.autores[j - 1];
+        state.autores[j - 1] = state.autores[j];
+        state.autores[j] = tmp;
+        syncForm(); onChange();
+      }
+    } else if (b.dataset.adn !== undefined) {
+      const j = +b.dataset.adn;
+      if (j < state.autores.length - 1) {
+        const tmp = state.autores[j + 1];
+        state.autores[j + 1] = state.autores[j];
+        state.autores[j] = tmp;
+        syncForm(); onChange();
+      }
+    }
+  });
+  $('add_autor').addEventListener('click', () => {
+    const n = (state.autores ? state.autores.length : 0) + 1;
+    state.autores.push({ nome: 'Autora ' + n, genero: 'f', bio: '', foto: DEFAULT_IMAGE_FOTO });
+    syncForm(); onChange();
+  });
 }
 
 function renderIlustForm() {
   const wrap = $('ilust_list');
   wrap.innerHTML = '';
   (state.ilustradores || []).forEach((il, i) => {
+    const isFem = il.genero === 'f';
+    const roleLbl = (isFem ? 'Ilustradora ' : 'Ilustrador ') + (i + 1);
     const d = document.createElement('div');
     d.className = 'part';
     d.innerHTML =
       '<div class="part-head">' +
-        '<h3>Ilustrador ' + (i + 1) + '</h3>' +
+        '<h3>' + roleLbl + '</h3>' +
         '<div class="part-actions">' +
           '<button type="button" data-iup="' + i + '" title="Mover para cima">↑</button>' +
           '<button type="button" data-idn="' + i + '" title="Mover para baixo">↓</button>' +
           '<button type="button" data-irm="' + i + '" class="danger">Remover</button>' +
         '</div>' +
       '</div>' +
-      '<label>Nome</label><input type="text" data-inome="' + i + '" value="' + esc(il.nome) + '">' +
+      '<label>Nome</label>' +
+      '<div class="name-row">' +
+        '<input type="text" data-inome="' + i + '" value="' + esc(il.nome) + '">' +
+        '<button type="button" class="g-btn' + (isFem ? ' active' : '') + '" data-igen="' + i + '" data-g="f" title="Feminino">♀</button>' +
+        '<button type="button" class="g-btn' + (!isFem ? ' active' : '') + '" data-igen="' + i + '" data-g="m" title="Masculino">♂</button>' +
+      '</div>' +
       '<label>Função</label><input type="text" data-ifunc="' + i + '" value="' + esc(il.funcao) + '">' +
       '<label>Bio</label><textarea data-ibio="' + i + '">' + esc(il.bio) + '</textarea>' +
       '<div class="img-row">' +
-        '<img class="thumb" src="' + il.foto + '" alt="">' +
+        '<img class="thumb" src="' + esc(il.foto || DEFAULT_IMAGE_FOTO) + '" alt="">' +
         '<input type="file" data-ifile="' + i + '" accept="image/*">' +
         '<button type="button" data-idef="' + i + '">Padrão</button>' +
       '</div>';
@@ -664,18 +959,27 @@ function attachIlustEvents() {
   });
   $('ilust_list').addEventListener('change', e => {
     if (e.target.type === 'file' && e.target.dataset.ifile !== undefined) {
+      const idx = +e.target.dataset.ifile;
       readImage(e.target.files[0], 900).then(url => {
-        if (url) { state.ilustradores[+e.target.dataset.ifile].foto = url; syncForm(); onChange(); }
+        if (url) { state.ilustradores[idx].foto = url; syncForm(); onChange(); }
       });
+      e.target.value = '';
     }
   });
   $('ilust_list').addEventListener('click', e => {
-    const b = e.target;
-    if (b.dataset.irm !== undefined) {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.igen !== undefined) {
+      const idx = +b.dataset.igen;
+      const g = b.dataset.g;
+      state.ilustradores[idx].genero = g;
+      state.ilustradores[idx].nome = swapGenderPlaceholder(state.ilustradores[idx].nome, g);
+      syncForm(); onChange();
+    } else if (b.dataset.irm !== undefined) {
       state.ilustradores.splice(+b.dataset.irm, 1);
       syncForm(); onChange();
     } else if (b.dataset.idef !== undefined) {
-      state.ilustradores[+b.dataset.idef].foto = '';
+      state.ilustradores[+b.dataset.idef].foto = DEFAULT_IMAGE_FOTO;
       syncForm(); onChange();
     } else if (b.dataset.iup !== undefined) {
       const j = +b.dataset.iup;
@@ -714,7 +1018,7 @@ function renderContoForm() {
       '</div>' +
       '<textarea data-i="' + i + '" class="part-text" placeholder="Texto do trecho">' + esc(part.text) + '</textarea>' +
       '<div class="img-row">' +
-        '<img class="thumb" data-t="' + i + '" src="' + part.image + '" alt="">' +
+        '<img class="thumb" data-t="' + i + '" src="' + esc(part.image) + '" alt="">' +
         '<input type="file" data-file="' + i + '" accept="image/*">' +
         '<button type="button" data-def="' + i + '">Padrão</button>' +
       '</div>';
@@ -758,10 +1062,11 @@ function attachContoEvents() {
   });
   $('conto_list').addEventListener('change', e => {
     if (e.target.type === 'file' && e.target.dataset.file !== undefined) {
+      const idx = +e.target.dataset.file;
       readImage(e.target.files[0], 1500).then(url => {
-        state.conto[+e.target.dataset.file].image = url;
-        syncForm(); onChange();
+        if (url) { state.conto[idx].image = url; syncForm(); onChange(); }
       });
+      e.target.value = '';
     }
   });
 }
@@ -841,7 +1146,7 @@ function historyEvents() {
     if (b.dataset.open) {
       idb.all().then(recs => {
         const r = recs.find(x => x.id === b.dataset.open);
-        if (r) { state = clone(r.state); applyAndRender(); }
+        if (r) { state = normalizeState(clone(r.state)); syncForm(); onChange(); }
       });
     } else if (b.dataset.dup) {
       idb.all().then(recs => {
@@ -872,7 +1177,7 @@ function onChange() { dirty = true; render(); scheduleAutosave(); }
 function applyAndRender() { syncForm(); render(); }
 
 /* ============================================================
-   EXPORTAR / IMPORTAR
+   EXPORTAR / IMPORTAR MARKDOWN
    ============================================================ */
 function download(name, content, type) {
   const blob = new Blob([content], { type: type || 'text/plain;charset=utf-8' });
@@ -886,91 +1191,210 @@ function download(name, content, type) {
 
 function exportMarkdown() {
   const m = state.meta;
+  const auts = state.autores || [];
+  const allFem = auts.length > 0 && auts.every(a => a.genero !== 'm');
+  const kAutor = auts.length > 1 ? (allFem ? 'autoras' : 'autores') : (allFem ? 'autora' : 'autor');
   const L = [];
   L.push('---');
-  ['titulo', 'autora', 'local', 'ano', 'pedagogico', 'escola', 'foto_capa'].forEach(k => L.push(k + ': ' + m[k]));
+  L.push('titulo: ' + (m.titulo || ''));
+  L.push(kAutor + ': ' + autoresStr());
+  L.push('local: ' + (m.local || ''));
+  L.push('ano: ' + (m.ano || ''));
+  L.push('pedagogico: ' + (m.pedagogico || ''));
+  L.push('escola: ' + (m.escola || ''));
+  L.push('foto_capa: ' + (m.foto_capa || ''));
   L.push('---', '');
+
   L.push('## Apresentação', '');
   if (state.apresentacao.heading) L.push('**' + state.apresentacao.heading + '**', '');
   paragraphs(state.apresentacao.paras).forEach(p => L.push(p, ''));
+
   L.push('## Conto', '');
   state.conto.forEach((part, i) => {
     L.push(part.text.trim(), '');
     if (part.image) L.push('![ilustração](' + part.image + ')', '');
     if (i < state.conto.length - 1) L.push('---', '');
   });
-  L.push('## Sobre a autora', '');
-  if (state.sobre.foto) L.push('![ilustração](' + state.sobre.foto + ')', '');
-  L.push(state.sobre.bio.trim(), '');
-  L.push('## Ilustradores', '');
-  (state.ilustradores || []).forEach(il => {
-    L.push('### ' + il.nome, '');
-    if (il.foto) L.push('![ilustração](' + il.foto + ')', '');
-    if (il.funcao) L.push('**' + il.funcao + '**', '');
-    L.push(il.bio.trim(), '');
-    L.push('');
-  });
+
+  L.push('## ' + getSobreTitulo(), '');
+
+  if (auts.length > 1) {
+    const secAutGen = allFem ? 'f' : 'm';
+    auts.forEach(aut => {
+      const gTag = (aut.genero !== inferGen(aut.nome, secAutGen)) ? ' <!-- ' + (aut.genero === 'm' ? '♂' : '♀') + ' -->' : '';
+      L.push('### ' + aut.nome + gTag, '');
+      if (aut.foto) L.push('![ilustração](' + aut.foto + ')', '');
+      L.push((aut.bio || '').trim(), '');
+      L.push('');
+    });
+  } else {
+    const a0 = auts[0] || { foto: '', bio: '' };
+    if (a0.foto) L.push('![ilustração](' + a0.foto + ')', '');
+    L.push((a0.bio || '').trim(), '');
+  }
+
+  if (state.ilustradores && state.ilustradores.length) {
+    const ils = state.ilustradores;
+    const secIlGen = ils.every(x => x.genero === 'f') ? 'f' : 'm';
+    L.push('## ' + getIlustTitulo(), '');
+    ils.forEach(il => {
+      const gTag = (il.genero !== inferGen(il.nome, secIlGen)) ? ' <!-- ' + (il.genero === 'f' ? '♀' : '♂') + ' -->' : '';
+      L.push('### ' + il.nome + gTag, '');
+      if (il.foto) L.push('![ilustração](' + il.foto + ')', '');
+      if (il.funcao) L.push('**' + il.funcao + '**', '');
+      L.push((il.bio || '').trim(), '');
+      L.push('');
+    });
+  }
+
   L.push('## A equipe', '');
   if (state.equipe.grupo) L.push('![ilustração](' + state.equipe.grupo + ')', '');
   if (state.equipe.simbolo) L.push('![ilustração](' + state.equipe.simbolo + ')', '');
   if (state.equipe.legenda) L.push(state.equipe.legenda, '');
+
   download('template_booklet.md', L.join('\n'), 'text/markdown;charset=utf-8');
 }
 
 function importMarkdown(text) {
-  const fm = text.match(/^---\s*\n([\s\S]*?)\n---\s*\n/);
+  text = String(text || '').replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n');
+  const fm = text.match(/^---\s*\n([\s\S]*?)\n---\s*(?:\n|$)/);
   let body = text;
   const meta = {};
   if (fm) {
     fm[1].split('\n').forEach(line => {
-      const i = line.indexOf(':');
-      if (i > 0) meta[line.slice(0, i).trim().toLowerCase()] = line.slice(i + 1).trim();
+      const s = line.trim();
+      if (!s || s.startsWith('#')) return;
+      const i = s.indexOf(':');
+      if (i > 0) meta[s.slice(0, i).trim().toLowerCase()] = s.slice(i + 1).trim();
     });
     body = text.slice(fm[0].length);
   }
-  const sections = {};
+  body = body.replace(/<!--(?![\s]*[♀♂][\s]*-->)[\s\S]*?-->/g, '');
+  const sections = {}, sectionTitles = {};
   let cur = null;
   body.split('\n').forEach(raw => {
-    if (raw.startsWith('### ')) return;
-    if (raw.startsWith('## ')) { cur = raw.slice(3).trim().toLowerCase(); sections[cur] = []; }
+    if (raw.startsWith('## ') && !raw.startsWith('### ')) {
+      const rawTitle = raw.slice(3).trim();
+      cur = rawTitle.toLowerCase();
+      sections[cur] = [];
+      sectionTitles[cur] = rawTitle;
+    }
     else if (cur) sections[cur].push(raw);
   });
-  const get = k => sections[k] ? sections[k].join('\n') : '';
-  const apres = get('apresentação') || get('apresentacao');
-  const aHeading = (apres.match(/\*\*(.+?)\*\*/) || [])[1] || '';
-  const aParas = apres.replace(/\*\*.+?\*\*/, '').replace(/^[\s\n]+/, '').trim();
-  const contoRaw = get('conto');
-  const conto = [];
-  (contoRaw.split(/\n\s*---\s*\n/) || []).forEach(chunk => {
+
+  const findSecEntry = (...pats) => {
+    for (const pat of pats) {
+      if (sections[pat]) return { key: pat, title: sectionTitles[pat], content: sections[pat].join('\n') };
+      for (const k in sections) {
+        if (k.startsWith(pat)) {
+          return { key: k, title: sectionTitles[k], content: sections[k].join('\n') };
+        }
+      }
+    }
+    return { key: '', title: '', content: '' };
+  };
+  const findSec = (...pats) => findSecEntry(...pats).content;
+
+  const apres = findSec('apresentação', 'apresentacao').trim();
+  const hm = apres.match(/^\*\*(.+?)\*\*\s*(?:\n|$)/);
+  const aHeading = hm ? hm[1].trim() : '';
+  const aParas = (hm ? apres.slice(hm[0].length) : apres).trim();
+
+  const contoRaw = findSec('conto', 'historia');
+  const conto = [], contoChunks = [];
+  let curChunk = [];
+  contoRaw.split('\n').forEach(raw => {
+    const s = raw.trim();
+    if (s.startsWith('### ') || s === '---' || s === '***' || s === '___') {
+      if (curChunk.length) { contoChunks.push(curChunk.join('\n')); curChunk = []; }
+    } else {
+      curChunk.push(raw);
+    }
+  });
+  if (curChunk.length) contoChunks.push(curChunk.join('\n'));
+  contoChunks.forEach(chunk => {
     const im = chunk.match(/!\[[^\]]*\]\(([^)]+)\)/);
     const image = im ? im[1] : '';
     const text = chunk.replace(/!\[[^\]]*\]\([^)]+\)/g, '').trim();
-    conto.push({ text, image });
+    if (text || image) conto.push({ text, image });
   });
-  const sobreRaw = get('sobre a autora') || get('sobre');
-  const sFoto = (sobreRaw.match(/!\[[^\]]*\]\(([^)]+)\)/) || [])[1] || '';
-  const sBio = sobreRaw.replace(/!\[[^\]]*\]\([^)]+\)/g, '').trim();
 
-  // ilustradores
-  const ilRaw = get('ilustradores');
+  // Sobre / Autores
+  const sobreEntry = findSecEntry('sobre');
+  const sobreRaw = sobreEntry.content;
+  const sobreKey = sobreEntry.key || '';
+  const isMascAutor = Boolean((meta.autor && !meta.autora) || meta.autores || (sobreKey.includes('autor') && !sobreKey.includes('autora')));
+  const defaultAutGen = isMascAutor ? 'm' : 'f';
+  const autorVal = meta.autores || meta.autoras || meta.autora || meta.autor || '';
+
+  const parseSubHeading = (rawHeading, fallbackGen, isMixedCapable) => {
+    const gm = rawHeading.match(/<!--\s*([♀♂])\s*-->/);
+    const clean = rawHeading.replace(/<!--\s*[♀♂]\s*-->/g, '').trim();
+    const gen = gm ? (gm[1] === '♀' ? 'f' : 'm') : (isMixedCapable ? inferGen(clean, fallbackGen) : fallbackGen);
+    return { nome: clean, genero: gen };
+  };
+
+  const autores = [];
+  let curCo = null;
+  const hasSubInSobre = sobreRaw.split('\n').some(l => l.trim().startsWith('### '));
+  if (hasSubInSobre) {
+    sobreRaw.split('\n').forEach(raw => {
+      const s = raw.trim();
+      if (s.startsWith('### ')) {
+        if (curCo) autores.push(curCo);
+        const h = parseSubHeading(s.slice(4), defaultAutGen, defaultAutGen === 'm');
+        curCo = { nome: h.nome, genero: h.genero, foto: '', bio: [] };
+      } else if (curCo) {
+        const im = s.match(/!\[[^\]]*\]\(([^)]+)\)/);
+        if (im) curCo.foto = im[1];
+        else if (!s.startsWith('#')) curCo.bio.push(s);
+      }
+    });
+    if (curCo) autores.push(curCo);
+    autores.forEach(x => { x.bio = x.bio.join('\n').replace(/\n{3,}/g, '\n\n').trim(); });
+  } else {
+    const sFoto = (sobreRaw.match(/!\[[^\]]*\]\(([^)]+)\)/) || [])[1] || '';
+    const sBio = sobreRaw.replace(/!\[[^\]]*\]\([^)]+\)/g, '').trim();
+    const isPlural = Boolean(meta.autores || meta.autoras || sobreKey.includes('autores') || sobreKey.includes('autoras'));
+    if (isPlural && autorVal) {
+      const nomes = autorVal.split(/\s*(?:,| e )\s*/).filter(Boolean);
+      const pickGen = n => defaultAutGen === 'm' ? inferGen(n, 'm') : 'f';
+      autores.push({ nome: nomes[0] || autorVal, genero: pickGen(nomes[0]), foto: sFoto || DEFAULT_IMAGE_FOTO, bio: sBio });
+      nomes.slice(1).forEach(n => autores.push({ nome: n, genero: pickGen(n), foto: DEFAULT_IMAGE_FOTO, bio: '' }));
+    } else {
+      autores.push({ nome: autorVal, genero: defaultAutGen, foto: sFoto, bio: sBio });
+    }
+  }
+
+  // Ilustradores
+  const ilEntry = findSecEntry('ilustra');
+  const ilRaw = ilEntry.content;
+  const rawIlustTitle = (ilEntry.title || '').trim().toLowerCase();
+  const defaultIlustGen = ['ilustradora', 'ilustradoras'].includes(rawIlustTitle) ? 'f' : 'm';
+  const isIlustMascPlural = !['ilustradora', 'ilustradoras', 'ilustrador'].includes(rawIlustTitle);
   const ilustradores = [];
   let curIl = null;
   ilRaw.split('\n').forEach(raw => {
-    if (raw.startsWith('### ')) {
+    const s = raw.trim();
+    if (s.startsWith('### ')) {
       if (curIl) ilustradores.push(curIl);
-      curIl = { nome: raw.slice(4).trim(), foto: '', funcao: '', bio: [] };
+      const h = parseSubHeading(s.slice(4), defaultIlustGen, isIlustMascPlural);
+      curIl = { nome: h.nome, genero: h.genero, foto: '', funcao: '', bio: [] };
     } else if (curIl) {
-      const im = raw.match(/!\[[^\]]*\]\(([^)]+)\)/);
+      const im = s.match(/!\[[^\]]*\]\(([^)]+)\)/);
       if (im) curIl.foto = im[1];
-      else if (/^\*\*.+\*\*$/.test(raw.trim())) curIl.funcao = raw.trim().replace(/^\*\*|\*\*$/g, '');
-      else if (raw.trim()) curIl.bio.push(raw.trim());
+      else if (/^\*\*.+\*\*$/.test(s)) curIl.funcao = s.replace(/^\*\*|\*\*$/g, '');
+      else if (!s.startsWith('#')) curIl.bio.push(s);
     }
   });
   if (curIl) ilustradores.push(curIl);
-  ilustradores.forEach(x => { x.bio = x.bio.join(' '); });
+  ilustradores.forEach(x => { x.bio = x.bio.join('\n').replace(/\n{3,}/g, '\n\n').trim(); });
+  if (!ilustradores.length && meta.capa) {
+    ilustradores.push({ nome: meta.capa, genero: inferGen(meta.capa, 'm'), foto: DEFAULT_IMAGE_FOTO, funcao: 'Capa', bio: '' });
+  }
 
-  // a equipe
-  const eqRaw = get('a equipe') || get('equipe');
+  // A equipe
+  const eqRaw = findSec('equipe');
   const eqImgs = [], eqLeg = [];
   eqRaw.split('\n').forEach(raw => {
     const im = raw.match(/!\[[^\]]*\]\(([^)]+)\)/);
@@ -979,17 +1403,25 @@ function importMarkdown(text) {
   });
   const equipe = { grupo: eqImgs[0] || '', simbolo: eqImgs[1] || '', legenda: eqLeg.join(' ') };
 
+  const hasContoSec = Boolean(findSecEntry('conto', 'historia').key);
+
   state = {
-    meta: Object.assign(exampleState().meta, meta),
+    meta: {
+      titulo: meta.titulo || '',
+      local: meta.local || '',
+      ano: meta.ano || '',
+      pedagogico: meta.pedagogico || '',
+      escola: meta.escola || '',
+      foto_capa: meta.foto_capa || DEFAULT_IMAGE_CAPA
+    },
     apresentacao: { heading: aHeading, paras: aParas },
-    conto: conto.length ? conto : exampleState().conto,
-    sobre: { bio: sBio || exampleState().sobre.bio, foto: sFoto },
-    ilustradores: ilustradores.length ? ilustradores : exampleState().ilustradores,
-    equipe: { grupo: equipe.grupo || exampleState().equipe.grupo,
-              simbolo: equipe.simbolo || exampleState().equipe.simbolo,
-              legenda: equipe.legenda }
+    conto: conto.length ? conto : (hasContoSec ? [{ text: '', image: '' }] : exampleState().conto),
+    autores: autores,
+    ilustradores: ilustradores,
+    equipe: equipe
   };
-  applyAndRender();
+  syncForm();
+  onChange();
 }
 
 /* ============================================================
@@ -997,43 +1429,65 @@ function importMarkdown(text) {
    ============================================================ */
 function bindStaticEvents() {
   ['f_titulo', 'f_autora', 'f_local', 'f_ano', 'f_pedagogico', 'f_escola',
-   'a_heading', 'a_paras', 's_bio', 'e_legenda'].forEach(id => {
+   'a_heading', 'a_paras', 'e_legenda'].forEach(id => {
     $(id).addEventListener('input', () => { readForm(); onChange(); });
   });
+
+  const setSingleAutorGen = g => {
+    if (!state.autores || !state.autores.length) return;
+    state.autores[0].genero = g;
+    state.autores[0].nome = swapGenderPlaceholder(state.autores[0].nome, g);
+    syncForm();
+    onChange();
+  };
+  $('f_gen_f').addEventListener('click', () => setSingleAutorGen('f'));
+  $('f_gen_m').addEventListener('click', () => setSingleAutorGen('m'));
+
   const addPart = () => {
     state.conto.push({ text: '', image: '' });
     syncForm(); onChange();
   };
   $('add_part').addEventListener('click', addPart);
   $('add_part_card').addEventListener('click', addPart);
+
   $('add_ilust').addEventListener('click', () => {
-    state.ilustradores.push({ nome: '', funcao: '', foto: '', bio: '' });
+    state.ilustradores.push({ nome: '', genero: 'f', funcao: 'Ilustrações', foto: DEFAULT_IMAGE_FOTO, bio: '' });
     syncForm(); onChange();
   });
+
   $('up_grupo').addEventListener('change', e => {
     readImage(e.target.files[0], 1600).then(url => { if (url) { state.equipe.grupo = url; syncForm(); onChange(); } });
+    e.target.value = '';
   });
   $('up_simbolo').addEventListener('change', e => {
     readImage(e.target.files[0], 1200).then(url => { if (url) { state.equipe.simbolo = url; syncForm(); onChange(); } });
+    e.target.value = '';
   });
-  $('r_grupo').addEventListener('click', () => { state.equipe.grupo = ''; syncForm(); onChange(); });
-  $('r_simbolo').addEventListener('click', () => { state.equipe.simbolo = ''; syncForm(); onChange(); });
+  $('r_grupo').addEventListener('click', () => { state.equipe.grupo = state.equipe.grupo ? '' : DEFAULT_IMAGE_FOTO; syncForm(); onChange(); });
+  $('r_simbolo').addEventListener('click', () => { state.equipe.simbolo = state.equipe.simbolo ? '' : 'ilustracoes/guaramirangua.png'; syncForm(); onChange(); });
+
   $('up_capa').addEventListener('change', e => {
     readImage(e.target.files[0], 1600).then(url => { if (url) { state.meta.foto_capa = url; syncForm(); onChange(); } });
-  });
-  $('up_foto').addEventListener('change', e => {
-    readImage(e.target.files[0], 1500).then(url => { if (url) { state.sobre.foto = url; syncForm(); onChange(); } });
+    e.target.value = '';
   });
   $('r_capa').addEventListener('click', () => { state.meta.foto_capa = DEFAULT_IMAGE_CAPA; syncForm(); onChange(); });
-  $('r_foto').addEventListener('click', () => { state.sobre.foto = DEFAULT_IMAGE_FOTO; syncForm(); onChange(); });
+
   $('btn_print').addEventListener('click', () => window.print());
   $('btn_md').addEventListener('click', exportMarkdown);
-  $('btn_reset').addEventListener('click', () => { state = exampleState(); applyAndRender(); });
+  $('btn_reset').addEventListener('click', () => { state = exampleState(); syncForm(); onChange(); });
   $('btn_save').addEventListener('click', () => {
-    const name = prompt('Nome do booklet:', state.meta.titulo || 'Booklet') || 'Booklet';
+    const raw = prompt('Nome do booklet:', state.meta.titulo || 'Booklet');
+    if (raw === null) return;
+    const name = raw.trim() || 'Booklet';
     idb.put({ id: 'b' + Date.now(), name, date: Date.now(), state: clone(state) }).then(refreshHistory);
   });
   $('btn_imp_md').addEventListener('click', () => $('imp_md').click());
+  document.querySelectorAll('.toolbar details .menu button').forEach(b => {
+    b.addEventListener('click', () => {
+      const det = b.closest('details');
+      if (det) det.open = false;
+    });
+  });
   $('imp_md').addEventListener('change', e => {
     const f = e.target.files[0];
     if (!f) return;
@@ -1042,6 +1496,7 @@ function bindStaticEvents() {
     r.readAsText(f, 'utf-8');
     e.target.value = '';
   });
+
   document.querySelectorAll('#tabs button').forEach(b => {
     b.addEventListener('click', () => {
       document.querySelectorAll('#tabs button').forEach(x => x.classList.remove('active'));
@@ -1052,8 +1507,10 @@ function bindStaticEvents() {
       fitPreview();
     });
   });
+
   window.addEventListener('resize', fitPreview);
   attachContoEvents();
+  attachAutoresEvents();
   attachIlustEvents();
   historyEvents();
 }
@@ -1063,7 +1520,7 @@ applyAndRender();
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitPreview);
 idb.open().then(() => idb.all()).then(recs => {
   const draft = recs.find(r => r.id === 'draft');
-  if (draft && draft.state && !dirty) { state = clone(draft.state); applyAndRender(); }
+  if (draft && draft.state && !dirty) { state = normalizeState(clone(draft.state)); applyAndRender(); }
   refreshHistory();
 }).catch(() => {});
 </script>
