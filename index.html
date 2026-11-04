@@ -781,6 +781,8 @@ function readForm() {
   state.meta.titulo = $('f_titulo').value;
   if (state.autores && state.autores.length === 1) {
     state.autores[0].nome = $('f_autora').value;
+    const inp0 = document.querySelector('#autores_list input[data-anome="0"]');
+    if (inp0 && inp0.value !== $('f_autora').value) inp0.value = $('f_autora').value;
   }
   state.meta.local = $('f_local').value;
   state.meta.ano = $('f_ano').value;
@@ -810,33 +812,23 @@ function renderAutoresForm() {
   const wrap = $('autores_list');
   wrap.innerHTML = '';
   const total = (state.autores || []).length;
-  if (total === 1) {
-    const aut = state.autores[0];
-    const d = document.createElement('div');
-    d.style.marginBottom = '10px';
-    d.innerHTML =
-      '<label>Bio</label><textarea data-abio="0">' + esc(aut.bio) + '</textarea>' +
-      '<div class="img-row">' +
-        '<img class="thumb" src="' + esc(aut.foto) + '" alt="">' +
-        '<input type="file" data-afile="0" accept="image/*">' +
-        '<button type="button" data-adef="0">Padrão</button>' +
-      '</div>';
-    wrap.appendChild(d);
-    return;
-  }
   (state.autores || []).forEach((aut, i) => {
     const isFem = aut.genero !== 'm';
-    const roleLbl = (isFem ? 'Autora ' : 'Autor ') + (i + 1);
+    const roleLbl = (isFem ? 'Autora' : 'Autor') + (total > 1 ? ' ' + (i + 1) : '');
+    const actionsHtml = total > 1
+      ? '<div class="part-actions">' +
+          '<button type="button" data-aup="' + i + '" title="Mover para cima">↑</button>' +
+          '<button type="button" data-adn="' + i + '" title="Mover para baixo">↓</button>' +
+          '<button type="button" data-arm="' + i + '" class="danger">Remover</button>' +
+        '</div>'
+      : '';
+    const thumbSrc = total === 1 ? esc(aut.foto) : esc(aut.foto || DEFAULT_IMAGE_FOTO);
     const d = document.createElement('div');
     d.className = 'part';
     d.innerHTML =
       '<div class="part-head">' +
         '<h3>' + roleLbl + '</h3>' +
-        '<div class="part-actions">' +
-          '<button type="button" data-aup="' + i + '" title="Mover para cima">↑</button>' +
-          '<button type="button" data-adn="' + i + '" title="Mover para baixo">↓</button>' +
-          '<button type="button" data-arm="' + i + '" class="danger">Remover</button>' +
-        '</div>' +
+        actionsHtml +
       '</div>' +
       '<label>Nome</label>' +
       '<div class="name-row">' +
@@ -846,7 +838,7 @@ function renderAutoresForm() {
       '</div>' +
       '<label>Bio</label><textarea data-abio="' + i + '">' + esc(aut.bio) + '</textarea>' +
       '<div class="img-row">' +
-        '<img class="thumb" src="' + esc(aut.foto || DEFAULT_IMAGE_FOTO) + '" alt="">' +
+        '<img class="thumb" src="' + thumbSrc + '" alt="">' +
         '<input type="file" data-afile="' + i + '" accept="image/*">' +
         '<button type="button" data-adef="' + i + '">Padrão</button>' +
       '</div>';
@@ -917,9 +909,10 @@ function attachAutoresEvents() {
 function renderIlustForm() {
   const wrap = $('ilust_list');
   wrap.innerHTML = '';
+  const total = (state.ilustradores || []).length;
   (state.ilustradores || []).forEach((il, i) => {
     const isFem = il.genero === 'f';
-    const roleLbl = (isFem ? 'Ilustradora ' : 'Ilustrador ') + (i + 1);
+    const roleLbl = (isFem ? 'Ilustradora' : 'Ilustrador') + (total > 1 ? ' ' + (i + 1) : '');
     const d = document.createElement('div');
     d.className = 'part';
     d.innerHTML =
