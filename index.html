@@ -794,6 +794,13 @@ function readForm() {
   state.equipe.legenda = $('e_legenda').value;
 }
 
+function moveItem(arr, idx, dir) {
+  const k = idx + dir;
+  if (k < 0 || k >= arr.length) return;
+  const tmp = arr[idx]; arr[idx] = arr[k]; arr[k] = tmp;
+  syncForm(); onChange();
+}
+
 function swapGenderPlaceholder(name, gen) {
   const s = String(name || '').trim();
   if (gen === 'm') {
@@ -882,21 +889,9 @@ function attachAutoresEvents() {
       state.autores[+b.dataset.adef].foto = DEFAULT_IMAGE_FOTO;
       syncForm(); onChange();
     } else if (b.dataset.aup !== undefined) {
-      const j = +b.dataset.aup;
-      if (j > 0) {
-        const tmp = state.autores[j - 1];
-        state.autores[j - 1] = state.autores[j];
-        state.autores[j] = tmp;
-        syncForm(); onChange();
-      }
+      moveItem(state.autores, +b.dataset.aup, -1);
     } else if (b.dataset.adn !== undefined) {
-      const j = +b.dataset.adn;
-      if (j < state.autores.length - 1) {
-        const tmp = state.autores[j + 1];
-        state.autores[j + 1] = state.autores[j];
-        state.autores[j] = tmp;
-        syncForm(); onChange();
-      }
+      moveItem(state.autores, +b.dataset.adn, 1);
     }
   });
   $('add_autor').addEventListener('click', () => {
@@ -913,14 +908,17 @@ function renderIlustForm() {
   (state.ilustradores || []).forEach((il, i) => {
     const isFem = il.genero === 'f';
     const roleLbl = (isFem ? 'Ilustradora' : 'Ilustrador') + (total > 1 ? ' ' + (i + 1) : '');
+    const moveBtns = total > 1
+      ? '<button type="button" data-iup="' + i + '" title="Mover para cima">↑</button>' +
+        '<button type="button" data-idn="' + i + '" title="Mover para baixo">↓</button>'
+      : '';
     const d = document.createElement('div');
     d.className = 'part';
     d.innerHTML =
       '<div class="part-head">' +
         '<h3>' + roleLbl + '</h3>' +
         '<div class="part-actions">' +
-          '<button type="button" data-iup="' + i + '" title="Mover para cima">↑</button>' +
-          '<button type="button" data-idn="' + i + '" title="Mover para baixo">↓</button>' +
+          moveBtns +
           '<button type="button" data-irm="' + i + '" class="danger">Remover</button>' +
         '</div>' +
       '</div>' +
@@ -975,21 +973,9 @@ function attachIlustEvents() {
       state.ilustradores[+b.dataset.idef].foto = DEFAULT_IMAGE_FOTO;
       syncForm(); onChange();
     } else if (b.dataset.iup !== undefined) {
-      const j = +b.dataset.iup;
-      if (j > 0) {
-        const tmp = state.ilustradores[j - 1];
-        state.ilustradores[j - 1] = state.ilustradores[j];
-        state.ilustradores[j] = tmp;
-        syncForm(); onChange();
-      }
+      moveItem(state.ilustradores, +b.dataset.iup, -1);
     } else if (b.dataset.idn !== undefined) {
-      const j = +b.dataset.idn;
-      if (j < state.ilustradores.length - 1) {
-        const tmp = state.ilustradores[j + 1];
-        state.ilustradores[j + 1] = state.ilustradores[j];
-        state.ilustradores[j] = tmp;
-        syncForm(); onChange();
-      }
+      moveItem(state.ilustradores, +b.dataset.idn, 1);
     }
   });
 }
@@ -1036,21 +1022,9 @@ function attachContoEvents() {
       state.conto[+b.dataset.def].image = defaultContoImage(+b.dataset.def);
       syncForm(); onChange();
     } else if (b.dataset.up !== undefined) {
-      const j = +b.dataset.up;
-      if (j > 0) {
-        const tmp = state.conto[j - 1];
-        state.conto[j - 1] = state.conto[j];
-        state.conto[j] = tmp;
-        syncForm(); onChange();
-      }
+      moveItem(state.conto, +b.dataset.up, -1);
     } else if (b.dataset.dn !== undefined) {
-      const j = +b.dataset.dn;
-      if (j < state.conto.length - 1) {
-        const tmp = state.conto[j + 1];
-        state.conto[j + 1] = state.conto[j];
-        state.conto[j] = tmp;
-        syncForm(); onChange();
-      }
+      moveItem(state.conto, +b.dataset.dn, 1);
     }
   });
   $('conto_list').addEventListener('change', e => {
